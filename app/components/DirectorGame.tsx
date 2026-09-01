@@ -193,6 +193,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const visualHintFilm = visualHintKey ? lookups.filmsById.get(visualHintKey.filmId) ?? null : null;
   const visualHintSticker = visualHintKey ? game.movies[visualHintKey.filmId]?.hints[visualHintKey.type] ?? null : null;
   const trailerFilm = trailerFilmId ? lookups.filmsById.get(trailerFilmId) ?? null : null;
+  const isCleanup = game.stagePhase === "cleanup";
 
   const registerDirectorRef = (directorId: string, element: HTMLDivElement | null) => {
     if (element) directorRefs.current.set(directorId, element);
@@ -290,6 +291,9 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     if (outcome.completedDirectorId) {
       const completedName = lookups.directorsById.get(outcome.completedDirectorId)?.name ?? "Director";
       setHudMessage(`${completedName} archived. Slot cleared. +${outcome.coinsAwarded} coins total.`);
+    }
+    if (game.stagePhase !== "cleanup" && outcome.state.stagePhase === "cleanup") {
+      setHudMessage(`Cleanup phase. ${outcome.state.visibleMovieIds.length} movies remain; solved tickets will not be replaced.`);
     }
     if (outcome.state.status === "lost") setHudMessage("All five channels were occupied when a new director arrived.");
     if (outcome.state.status === "stage_complete") setHudMessage(`Stage ${outcome.state.stageNumber} cleared. The table is clean.`);
@@ -652,7 +656,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       status={game.status === "playing" ? hudMessage : game.status === "stage_complete" ? `Stage ${game.stageNumber} complete · results ready` : game.status === "won" ? "Archive complete · final results ready" : "Signal overload · final results ready"}
     >
       <section
-        className={`director-board-screen ${draggingFilmId ? "is-dragging" : ""}`}
+        className={`director-board-screen ${draggingFilmId ? "is-dragging" : ""} ${isCleanup ? "is-cleanup" : ""}`}
         ref={boardRef}
         onPointerMove={moveDragging}
         onPointerUp={stopDragging}
@@ -662,9 +666,21 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       >
         <div className="screen-grid" aria-hidden="true" />
         <div className="on-air-bug" aria-hidden="true"><i /> ON AIR</div>
-        <div className="screen-instruction match-route" aria-label="Drag a movie ticket to a director">
-          <b>MOVIE TICKET <i aria-hidden="true">→</i> DIRECTOR</b>
-          <span>{draggingFilmId ? "Release on a glowing director. Its three sockets are ready." : "Pick up a ticket, then release it on a director."}</span>
+        <div
+          className={`screen-instruction match-route ${isCleanup ? "is-cleanup" : ""}`}
+          aria-label={isCleanup ? `Cleanup phase. ${game.visibleMovieIds.length} movies remain and solved tickets will not be replaced.` : "Drag a movie ticket to a director"}
+        >
+          {isCleanup ? (
+            <>
+              <b>CLEANUP PHASE <i aria-hidden="true">↓</i> {game.visibleMovieIds.length} LEFT</b>
+              <span>Every match now clears space. No replacements.</span>
+            </>
+          ) : (
+            <>
+              <b>MOVIE TICKET <i aria-hidden="true">→</i> DIRECTOR</b>
+              <span>{draggingFilmId ? "Release on a glowing director. Its three sockets are ready." : "Pick up a ticket, then release it on a director."}</span>
+            </>
+          )}
           <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
             <strong>Color = Genre</strong>
             <div aria-hidden="true">

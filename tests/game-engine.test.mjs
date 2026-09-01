@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   GAME_CONFIG,
+  actionableMovieCount,
   attemptAssignment,
   canUseEliminationHint,
   createInitialGame,
@@ -175,8 +176,30 @@ test("starts with two directors and a fixed ten-card field", () => {
   assert.equal(state.runDirectorIds.length, 20);
   assert.equal(state.stageDirectorIds.length, GAME_CONFIG.stageDirectorCount);
   assert.deepEqual(state.stageDirectorIds, state.runDirectorIds.slice(0, GAME_CONFIG.stageDirectorCount));
-  const actionableCount = state.visibleMovieIds.filter((filmId) => state.activeDirectorIds.includes(ownerOf(state, filmId))).length;
-  assert.equal(actionableCount, 6);
+  assert.equal(actionableMovieCount(state), 6);
+});
+
+test("the fixed board uses a configurable best-effort actionable movie target", () => {
+  const pool = directorPool();
+  const fiveTarget = { ...GAME_CONFIG, targetActionableMovieCount: 5 };
+  let state = createInitialGame(pool, "density-five", fiveTarget);
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(actionableMovieCount(state), 5);
+  assert.equal(state.visibleMovieIds.length - actionableMovieCount(state), 5);
+
+  state = resolveCorrect(state, fiveTarget).state;
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(actionableMovieCount(state), 5, "an unseen active movie should refill the vacated slot up to the target");
+
+  const sevenTarget = { ...GAME_CONFIG, targetActionableMovieCount: 7 };
+  state = createInitialGame(pool, "density-seven", sevenTarget);
+  assert.equal(actionableMovieCount(state), 6, "the target is best-effort when two active directors only have six movies");
+
+  const threeDirectorTarget = { ...GAME_CONFIG, startingDirectors: 3, targetActionableMovieCount: 7 };
+  state = createInitialGame(pool, "density-three-directors", threeDirectorTarget);
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(actionableMovieCount(state), 7);
+  assert.equal(state.visibleMovieIds.length - actionableMovieCount(state), 3, "future-director tickets remain on the board");
 });
 
 test("correct matches pay out, advance the countdown, and replenish the field", () => {
@@ -381,18 +404,26 @@ test("a stage stops future content, enters cleanup, and completes only after the
     stageDirectorCount: 2,
     startingDirectors: 2,
     visibleMovieCount: 10,
-    minimumActionableMovies: 6,
+    targetActionableMovieCount: 6,
     initialDirectorCountdown: 99,
   };
   let state = createInitialGame(pool, "stage-cleanup", config);
   const firstStageIds = [...state.stageDirectorIds];
   const futureStageIds = state.runDirectorIds.filter((directorId) => !firstStageIds.includes(directorId));
   assert.equal(state.upcomingDirectorIds.length, 0);
+  assert.equal(state.stagePhase, "cleanup");
   assert.equal(state.visibleMovieIds.length, 6);
   assert.ok(state.visibleMovieIds.every((filmId) => firstStageIds.includes(ownerOf(state, filmId))));
   assert.ok(state.visibleMovieIds.every((filmId) => !futureStageIds.includes(ownerOf(state, filmId))));
 
-  while (state.status === "playing") state = resolveCorrect(state, config).state;
+  const cleanupCounts = [state.visibleMovieIds.length];
+  while (state.status === "playing") {
+    const outcome = resolveCorrect(state, config);
+    assert.deepEqual(outcome.newlyVisibleMovieIds, [], "cleanup matches must not replenish solved tickets");
+    state = outcome.state;
+    cleanupCounts.push(state.visibleMovieIds.length);
+  }
+  assert.deepEqual(cleanupCounts, [6, 5, 4, 3, 2, 1, 0]);
   assert.equal(state.status, "stage_complete");
   assert.equal(state.visibleMovieIds.length, 0);
   assert.equal(state.activeDirectorIds.length, 0);
@@ -410,6 +441,37 @@ test("a stage stops future content, enters cleanup, and completes only after the
   assert.equal(state.stageStartScore, stageOneScore);
   assert.deepEqual(state.stageDirectorIds, futureStageIds);
   assert.ok(state.visibleMovieIds.every((filmId) => futureStageIds.includes(ownerOf(state, filmId))));
+});
+
+test("cleanup waits until every remaining stage movie is physically on the board", () => {
+  const pool = directorPool(4);
+  const config = {
+    ...GAME_CONFIG,
+    stageDirectorCount: 4,
+    startingDirectors: 4,
+    initialDirectorCountdown: 99,
+  };
+  let state = createInitialGame(pool, "cleanup-backlog", config);
+  assert.equal(state.upcomingDirectorIds.length, 0);
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(state.stagePhase, "active", "two unresolved stage movies are still off-board");
+
+  let outcome = resolveCorrect(state, config);
+  state = outcome.state;
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(outcome.newlyVisibleMovieIds.length, 1);
+  assert.equal(state.stagePhase, "active");
+
+  outcome = resolveCorrect(state, config);
+  state = outcome.state;
+  assert.equal(state.visibleMovieIds.length, 10);
+  assert.equal(outcome.newlyVisibleMovieIds.length, 1);
+  assert.equal(state.stagePhase, "cleanup", "cleanup starts once all ten remaining movies are visible");
+
+  outcome = resolveCorrect(state, config);
+  assert.equal(outcome.state.visibleMovieIds.length, 9);
+  assert.deepEqual(outcome.newlyVisibleMovieIds, []);
+  assert.equal(outcome.state.stagePhase, "cleanup");
 });
 
 test("correct streaks heat to ×2, catch fire at ×3, pay bonus coins, and reset on a mistake", () => {

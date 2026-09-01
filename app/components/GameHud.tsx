@@ -64,9 +64,10 @@ export function GameHud({
   const stageVictoryDirectors = game.victoryDirectors.filter((victory) => game.stageDirectorIds.includes(victory.directorId));
   const stageVictories = stageVictoryDirectors.length;
   const capacityPressure = directorCount >= 5 ? "critical" : directorCount === 4 ? "warning" : directorCount === 3 ? "noticeable" : "normal";
-  const isCleanup = game.upcomingDirectorIds.length === 0;
-  const arrivalState = isCleanup ? "cleanup" : game.nextDirectorIn <= 1 ? "critical" : game.nextDirectorIn === 2 ? "hot" : game.nextDirectorIn === 3 ? "warm" : "safe";
-  const isLastSafeMove = !isCleanup && directorCount === GAME_CONFIG.maximumActiveDirectors - 1 && game.nextDirectorIn === 1;
+  const isCleanup = game.stagePhase === "cleanup";
+  const isFinalReelsPending = !isCleanup && game.upcomingDirectorIds.length === 0;
+  const arrivalState = isCleanup ? "cleanup" : isFinalReelsPending ? "finalizing" : game.nextDirectorIn <= 1 ? "critical" : game.nextDirectorIn === 2 ? "hot" : game.nextDirectorIn === 3 ? "warm" : "safe";
+  const isLastSafeMove = !isCleanup && !isFinalReelsPending && directorCount === GAME_CONFIG.maximumActiveDirectors - 1 && game.nextDirectorIn === 1;
   const hintMode = hintContextDirector ? "director" : hintContextFilm ? "movie" : "none";
   const hintContextName = hintContextDirector?.name ?? hintContextFilm?.title ?? "Select a movie or director";
 
@@ -105,14 +106,16 @@ export function GameHud({
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        aria-label={isCleanup ? "Stage cleanup. No more directors will arrive." : `Next director in ${game.nextDirectorIn} ${game.nextDirectorIn === 1 ? "move" : "moves"}.${isLastSafeMove ? " Last safe move. Clear a director now." : ""}`}
+        aria-label={isCleanup ? `Stage cleanup. ${game.visibleMovieIds.length} movies remain. Solved tickets will not be replaced.` : isFinalReelsPending ? "Final stage tickets are entering. Cleanup begins when every remaining movie is on the board." : `Next director in ${game.nextDirectorIn} ${game.nextDirectorIn === 1 ? "move" : "moves"}.${isLastSafeMove ? " Last safe move. Clear a director now." : ""}`}
       >
-        <span className="next-director-label">{isCleanup ? "Stage cleanup" : "Next director in"}</span>
-        {isCleanup ? <div className="cleanup-display"><strong>CLEAR THE TABLE</strong><b>No more arrivals</b></div> : (
-          <div className="next-director-display" aria-hidden="true">
-            <strong>{game.nextDirectorIn}</strong>
-            <b>{game.nextDirectorIn === 1 ? "Move" : "Moves"}</b>
-          </div>
+        <span className="next-director-label">{isCleanup ? "Stage cleanup" : isFinalReelsPending ? "Final stage reels" : "Next director in"}</span>
+        {isCleanup ? <div className="cleanup-display"><strong>CLEANUP · {game.visibleMovieIds.length} LEFT</strong><b>Solved tickets will not be replaced</b></div> : (
+          isFinalReelsPending ? <div className="cleanup-display"><strong>LAST TICKETS ENTERING</strong><b>Cleanup begins when all are on the board</b></div> : (
+            <div className="next-director-display" aria-hidden="true">
+              <strong>{game.nextDirectorIn}</strong>
+              <b>{game.nextDirectorIn === 1 ? "Move" : "Moves"}</b>
+            </div>
+          )
         )}
         {isLastSafeMove ? <small className="next-director-warning">Last safe move · Clear a director now</small> : null}
       </section>

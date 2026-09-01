@@ -112,6 +112,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 .screen-instruction b { padding: 4px 7px; border: 2px solid rgba(8,25,30,.68); background: rgba(8,25,30,.58); box-shadow: 3px 3px 0 rgba(4,13,17,.42); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .screen-instruction b i { color: var(--pixel-amber); font-size: 15px; font-style: normal; }
 .screen-instruction span { color: rgba(219,255,246,.7); font-size: 9px; }
+.screen-instruction.is-cleanup b { border-color: #10282c; background: var(--pixel-cyan); color: #10212b; box-shadow: 3px 3px 0 rgba(4,13,17,.62); }
+.screen-instruction.is-cleanup b i { color: #8b2637; }
+.screen-instruction.is-cleanup span { color: #d9fffb; font-weight: 900; }
+.next-director-panel.arrival-finalizing { --arrival-color: var(--pixel-amber); }
 .genre-rule { flex: 0 0 auto; padding: 4px 6px; display: flex; align-items: center; gap: 6px; border: 2px solid rgba(8,25,30,.68); background: rgba(8,25,30,.7); box-shadow: 3px 3px 0 rgba(4,13,17,.42); }
 .genre-rule > strong { color: var(--pixel-amber); font-size: 7px; letter-spacing: .09em; text-transform: uppercase; }
 .genre-rule > div { display: flex; gap: 3px; }

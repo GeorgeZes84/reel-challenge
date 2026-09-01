@@ -230,9 +230,12 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(hud, /multiplier-badge/);
   assert.match(hud, /ON FIRE/);
   assert.match(hud, /STEAMING/);
-  assert.match(hud, /CLEAR THE TABLE/);
+  assert.match(hud, /CLEANUP · \{game\.visibleMovieIds\.length\} LEFT/);
+  assert.match(hud, /Solved tickets will not be replaced/);
+  assert.match(hud, /LAST TICKETS ENTERING/);
+  assert.match(hud, /game\.stagePhase === "cleanup"/);
   assert.match(hud, /aria-live="polite"/);
-  assert.match(hud, /isLastSafeMove = !isCleanup && directorCount === GAME_CONFIG\.maximumActiveDirectors - 1 && game\.nextDirectorIn === 1/);
+  assert.match(hud, /isLastSafeMove = !isCleanup && !isFinalReelsPending && directorCount === GAME_CONFIG\.maximumActiveDirectors - 1 && game\.nextDirectorIn === 1/);
   assert.match(hud, /next-director-panel/);
   assert.match(hud, /Last safe move · Clear a director now/);
   assert.match(hud, /Choose this movie&apos;s director/);

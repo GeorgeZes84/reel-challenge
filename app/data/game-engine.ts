@@ -15,6 +15,7 @@ export const HINT_TYPES = [
 
 export type HintType = (typeof HINT_TYPES)[number];
 export type GameStatus = "playing" | "stage_complete" | "won" | "lost";
+export type StagePhase = "active" | "cleanup";
 export type MovieStatus = "unseen" | "active" | "assigned" | "waiting_for_director" | "completed";
 
 export type HintSticker = {
@@ -55,6 +56,7 @@ export type GameState = {
   endReason: "archive_complete" | "board_overflow" | null;
   runDirectorIds: string[];
   stageNumber: number;
+  stagePhase: StagePhase;
   stageDirectorIds: string[];
   directorFilmIds: Record<string, string[]>;
   activeDirectorIds: string[];
@@ -93,7 +95,7 @@ export type GameConfig = {
   stageDirectorCount: number;
   initialDirectorCountdown: number;
   directorCountdownProgression: number[];
-  minimumActionableMovies: number;
+  targetActionableMovieCount: number;
   startingCoins: number;
   correctMatchCoins: number;
   directorCompletionCoins: number;
@@ -117,7 +119,10 @@ export const GAME_CONFIG: GameConfig = {
   stageDirectorCount: 10,
   initialDirectorCountdown: 6,
   directorCountdownProgression: [6, 6, 5, 5, 4, 4, 3],
-  minimumActionableMovies: 6,
+  // Best-effort composition target for the fixed ten-ticket board. This is a
+  // playtest tuning value, not a guarantee: the remaining unresolved movies
+  // for active directors can legitimately fall below it between arrivals.
+  targetActionableMovieCount: 6,
   startingCoins: 4,
   correctMatchCoins: 2,
   directorCompletionCoins: 5,
@@ -193,8 +198,13 @@ function canDraw(movie: MovieRuntime, state: GameState) {
   return true;
 }
 
+export function actionableMovieCount(state: GameState): number {
+  const activeSet = new Set(state.activeDirectorIds);
+  return state.visibleMovieIds.filter((filmId) => activeSet.has(state.movies[filmId].ownerDirectorId)).length;
+}
+
 function refillMovieField(state: GameState, config: GameConfig): GameState {
-  if (state.status !== "playing") return state;
+  if (state.status !== "playing" || state.stagePhase === "cleanup") return state;
   const missing = config.visibleMovieCount - state.visibleMovieIds.length;
   if (missing <= 0) return state;
 
@@ -213,26 +223,26 @@ function refillMovieField(state: GameState, config: GameConfig): GameState {
     random,
   );
 
-  const chosen: MovieRuntime[] = [];
-  const chosenIds = new Set(chosen.map((movie) => movie.filmId));
-  const actionableOnField = state.visibleMovieIds.filter((filmId) =>
-    activeSet.has(state.movies[filmId].ownerDirectorId)
-  ).length;
-  const actionableChosen = chosen.filter((movie) => activeSet.has(movie.ownerDirectorId)).length;
-  const actionableNeeded = Math.max(0, config.minimumActionableMovies - actionableOnField - actionableChosen);
+  const targetActionable = Math.max(
+    1,
+    Math.min(config.visibleMovieCount, Math.round(config.targetActionableMovieCount)),
+  );
+  const actionableOnField = actionableMovieCount(state);
+  const actionableNeeded = Math.max(0, targetActionable - actionableOnField);
   const activeFill = activeCandidates
-    .filter((movie) => !chosenIds.has(movie.filmId))
-    .slice(0, Math.min(actionableNeeded, missing - chosen.length));
-  for (const movie of activeFill) chosenIds.add(movie.filmId);
+    .slice(0, Math.min(actionableNeeded, missing));
+  const activeFillIds = new Set(activeFill.map((movie) => movie.filmId));
+  const slotsAfterActiveTarget = missing - activeFill.length;
 
-  const remaining = shuffleWith(
-    [
-      ...activeCandidates.filter((movie) => !chosenIds.has(movie.filmId)),
-      ...otherCandidates.filter((movie) => !chosenIds.has(movie.filmId)),
-    ],
-    random,
-  ).slice(0, missing - chosen.length - activeFill.length);
-  const newMovies = [...chosen, ...activeFill, ...remaining];
+  // Preserve future-director tickets whenever the stage pool can supply them.
+  // Active movies beyond the target are used only when otherwise required to
+  // keep the fixed board full (for example during late-stage cleanup).
+  const futureFill = otherCandidates.slice(0, slotsAfterActiveTarget);
+  const slotsAfterFuture = slotsAfterActiveTarget - futureFill.length;
+  const activeOverflow = activeCandidates
+    .filter((movie) => !activeFillIds.has(movie.filmId))
+    .slice(0, slotsAfterFuture);
+  const newMovies = [...activeFill, ...futureFill, ...activeOverflow];
   const nextMovies = { ...state.movies };
   for (const movie of newMovies) {
     nextMovies[movie.filmId] = {
@@ -247,6 +257,18 @@ function refillMovieField(state: GameState, config: GameConfig): GameState {
     visibleMovieIds: [...state.visibleMovieIds, ...newMovies.map((movie) => movie.filmId)],
     drawSerial: state.drawSerial + 1,
   };
+}
+
+function enterCleanupIfReady(state: GameState): GameState {
+  if (state.status !== "playing" || state.stagePhase === "cleanup" || state.upcomingDirectorIds.length > 0) {
+    return state;
+  }
+
+  const stageSet = new Set(state.stageDirectorIds);
+  const hasOffBoardStageMovie = Object.values(state.movies).some(
+    (movie) => stageSet.has(movie.ownerDirectorId) && canDraw(movie, state),
+  );
+  return hasOffBoardStageMovie ? state : { ...state, stagePhase: "cleanup" };
 }
 
 function directorCountdown(config: GameConfig, completedCount: number) {
@@ -326,6 +348,7 @@ export function createInitialGame(directorPool: readonly Director[], seed: strin
     endReason: null,
     runDirectorIds,
     stageNumber: 1,
+    stagePhase: "active",
     stageDirectorIds,
     directorFilmIds,
     activeDirectorIds: stageDirectorIds.slice(0, config.startingDirectors),
@@ -355,7 +378,7 @@ export function createInitialGame(directorPool: readonly Director[], seed: strin
     stageBestCombo: 0,
     stageHighestMultiplier: 1,
   };
-  return refillMovieField(state, config);
+  return enterCleanupIfReady(refillMovieField(state, config));
 }
 
 export function scoreMultiplierForStreak(streak: number, config: GameConfig = GAME_CONFIG): number {
@@ -410,6 +433,7 @@ export function startNextStage(state: GameState, config: GameConfig = GAME_CONFI
     status: "playing",
     endReason: null,
     stageNumber: nextStageNumber,
+    stagePhase: "active",
     stageDirectorIds,
     activeDirectorIds: stageDirectorIds.slice(0, config.startingDirectors),
     upcomingDirectorIds: stageDirectorIds.slice(config.startingDirectors),
@@ -423,7 +447,7 @@ export function startNextStage(state: GameState, config: GameConfig = GAME_CONFI
     stageBestCombo: state.correctStreak,
     stageHighestMultiplier: state.currentMultiplier,
   };
-  return refillMovieField(nextState, config);
+  return enterCleanupIfReady(refillMovieField(nextState, config));
 }
 
 export type AttemptOutcome = {
@@ -471,6 +495,7 @@ export function attemptAssignment(
       currentMultiplier: 1,
     };
     nextState = advanceMoveAndDirector(nextState, config);
+    nextState = enterCleanupIfReady(nextState);
     return {
       kind: "wrong",
       filmId,
@@ -542,6 +567,7 @@ export function attemptAssignment(
   };
   nextState = advanceMoveAndDirector(nextState, config);
   nextState = refillMovieField(nextState, config);
+  nextState = enterCleanupIfReady(nextState);
   nextState = finishStageIfCleared(nextState, config);
   return {
     kind: "correct",
