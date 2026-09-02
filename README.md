@@ -36,7 +36,7 @@ A playful, browser-only film-matching game presented inside a responsive, vector
 - Drag tickets around the screen to organize the board; dropping on empty space keeps the new position.
 - Correct matches send one coin pip per earned coin toward the bezel, then pulse the wallet in the Hint Shop; combo bonus coins are called out separately and accumulate into the same wallet.
 - Correct and wrong match feedback no longer blocks the next useful input; the larger Director archive sequence was shortened from 1.9 seconds to about 1.1 seconds.
-- The CRT treatment uses static scanlines and vignette layers rather than a continuously repainting noise animation, keeping idle GPU use low.
+- The CRT treatment uses static scanlines and vignette layers rather than a continuously repainting noise animation. Smoke, Director arrivals, and coin flights use compositor-friendly transforms, and pointer movement updates only the ticket being dragged instead of rerendering the entire game.
 - Use the bezel controls to mute sound, reduce the CRT treatment, or start a fresh shuffled game.
 - The desktop cabinet is constrained to a complete 16:9 view, with a natural-height stacked layout on smaller screens.
 - CRT scanlines and motion are decorative only. The interface keeps readable text and focusable controls, respects `prefers-reduced-motion`, and provides an in-game CRT effects toggle.

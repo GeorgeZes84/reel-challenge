@@ -71,7 +71,10 @@ type DragRecord = {
   startX: number;
   startY: number;
   startPosition: Position;
+  currentPosition: Position;
   boardRect: DOMRect;
+  element: HTMLElement;
+  directorTargets: Array<{ directorId: string; rect: DOMRect }>;
 };
 
 function makeLookupMaps() {
@@ -123,6 +126,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const coinRewardSerialRef = useRef(0);
   const dragRef = useRef<DragRecord | null>(null);
   const didMoveRef = useRef(false);
+  const hoveredDirectorRef = useRef<string | null>(null);
   const suppressClickUntilRef = useRef(0);
   const timersRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -253,9 +257,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     else directorRefs.current.delete(directorId);
   };
 
-  const directorAtPoint = (clientX: number, clientY: number) => {
-    for (const [directorId, element] of directorRefs.current) {
-      const rect = element.getBoundingClientRect();
+  const directorAtPoint = (clientX: number, clientY: number, targets: DragRecord["directorTargets"]) => {
+    for (const { directorId, rect } of targets) {
       if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) return directorId;
     }
     return null;
@@ -266,19 +269,28 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     const boardRect = boardRef.current?.getBoundingClientRect();
     const directorRect = directorRefs.current.get(directorId)?.getBoundingClientRect();
     const walletRect = coinWalletRef.current?.getBoundingClientRect();
+    const boardWidth = boardRect?.width ?? 1000;
+    const boardHeight = boardRect?.height ?? 600;
+    const startX = boardRect && directorRect
+      ? clamp(directorRect.left + directorRect.width / 2 - boardRect.left, boardWidth * .04, boardWidth * .92)
+      : boardWidth * .52;
+    const startY = boardRect && directorRect
+      ? clamp(directorRect.top + directorRect.height / 2 - boardRect.top, boardHeight * .08, boardHeight * .9)
+      : boardHeight * .48;
+    const targetX = boardRect && walletRect ? walletRect.left + walletRect.width / 2 - boardRect.left : boardWidth + 28;
+    const targetY = boardRect && walletRect
+      ? clamp(walletRect.top + walletRect.height / 2 - boardRect.top, boardHeight * .09, boardHeight * .91)
+      : boardHeight * .46;
     coinRewardSerialRef.current += 1;
     const event: CoinRewardEvent = {
       id: coinRewardSerialRef.current,
       amount,
-      startX: boardRect && directorRect
-        ? clamp(((directorRect.left + directorRect.width / 2 - boardRect.left) / boardRect.width) * 100, 4, 92)
-        : 52,
-      startY: boardRect && directorRect
-        ? clamp(((directorRect.top + directorRect.height / 2 - boardRect.top) / boardRect.height) * 100, 8, 90)
-        : 48,
-      targetY: boardRect && walletRect
-        ? clamp(((walletRect.top + walletRect.height / 2 - boardRect.top) / boardRect.height) * 100, 9, 91)
-        : 46,
+      startX,
+      startY,
+      arcX: startX + (targetX - startX) * .48,
+      arcY: Math.min(startY, targetY) - boardHeight * .1,
+      targetX,
+      targetY,
       bonusAmount,
       multiplier,
     };
@@ -448,9 +460,13 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       startX: event.clientX,
       startY: event.clientY,
       startPosition,
+      currentPosition: startPosition,
       boardRect,
+      element: event.currentTarget,
+      directorTargets: Array.from(directorRefs.current, ([directorId, element]) => ({ directorId, rect: element.getBoundingClientRect() })),
     };
     didMoveRef.current = false;
+    hoveredDirectorRef.current = null;
     setHintContextFilmId(filmId);
     setHintContextDirectorId(null);
     setOpenDirectorHintKey(null);
@@ -470,28 +486,48 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     }
     if (!didMoveRef.current) return;
     event.preventDefault();
-    setPositions((current) => ({
-      ...current,
-      [drag.filmId]: {
-        ...drag.startPosition,
-        x: clamp(drag.startPosition.x + (deltaX / drag.boardRect.width) * 100, 1, 84),
-        y: clamp(drag.startPosition.y + (deltaY / drag.boardRect.height) * 100, 2, 76),
-        rotation: 0,
-      },
-    }));
-    setHoveredDirectorId(directorAtPoint(event.clientX, event.clientY));
+    const nextX = clamp(drag.startPosition.x + (deltaX / drag.boardRect.width) * 100, 1, 84);
+    const nextY = clamp(drag.startPosition.y + (deltaY / drag.boardRect.height) * 100, 2, 76);
+    drag.currentPosition = {
+      ...drag.startPosition,
+      x: nextX,
+      y: nextY,
+      rotation: 0,
+    };
+    const visualDeltaX = ((nextX - drag.startPosition.x) / 100) * drag.boardRect.width;
+    const visualDeltaY = ((nextY - drag.startPosition.y) / 100) * drag.boardRect.height;
+    drag.element.style.transform = `translate3d(${visualDeltaX}px, ${visualDeltaY}px, 0) rotate(0deg) scale(1.08)`;
+    const nextHoveredDirectorId = directorAtPoint(event.clientX, event.clientY, drag.directorTargets);
+    if (nextHoveredDirectorId !== hoveredDirectorRef.current) {
+      hoveredDirectorRef.current = nextHoveredDirectorId;
+      setHoveredDirectorId(nextHoveredDirectorId);
+    }
   };
 
   const stopDragging = (event: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const targetDirectorId = didMoveRef.current ? directorAtPoint(event.clientX, event.clientY) : null;
-    if (didMoveRef.current) suppressClickUntilRef.current = performance.now() + 250;
+    const didMove = didMoveRef.current;
+    const targetDirectorId = didMove ? directorAtPoint(event.clientX, event.clientY, drag.directorTargets) : null;
+    if (didMove) suppressClickUntilRef.current = performance.now() + 250;
     dragRef.current = null;
     didMoveRef.current = false;
+    hoveredDirectorRef.current = null;
     setDraggingFilmId(null);
     setHoveredDirectorId(null);
-    if (targetDirectorId) resolveAssignment(drag.filmId, targetDirectorId, drag.startPosition);
+    if (targetDirectorId) {
+      const isCorrect = game.movies[drag.filmId]?.ownerDirectorId === targetDirectorId;
+      if (!isCorrect) drag.element.style.transform = "";
+      resolveAssignment(drag.filmId, targetDirectorId, drag.startPosition);
+    } else {
+      drag.element.style.left = `${drag.currentPosition.x}%`;
+      drag.element.style.top = `${drag.currentPosition.y}%`;
+      drag.element.style.setProperty("--ticket-rotation", "0deg");
+      drag.element.style.transform = "";
+      if (didMove) {
+        setPositions((current) => ({ ...current, [drag.filmId]: drag.currentPosition }));
+      }
+    }
   };
 
   const cancelDragging = (event: ReactPointerEvent<HTMLElement>) => {
@@ -500,6 +536,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     if (didMoveRef.current) suppressClickUntilRef.current = performance.now() + 250;
     dragRef.current = null;
     didMoveRef.current = false;
+    hoveredDirectorRef.current = null;
+    drag.element.style.transform = "";
     setPositions((current) => ({ ...current, [drag.filmId]: drag.startPosition }));
     setDraggingFilmId(null);
     setHoveredDirectorId(null);

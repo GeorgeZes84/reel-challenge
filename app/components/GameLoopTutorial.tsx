@@ -7,7 +7,7 @@ import type { MovieRuntime } from "../data/game-engine";
 import { DirectorSlot, MovieTicket, type Position } from "./ConstellationCard";
 
 type TutorialPhase = "first-match" | "wrong-match" | "second-match" | "final-match" | "director-complete" | "director-archived" | "movie-hint" | "director-hint" | "reference";
-type TutorialDrag = { filmId: string; pointerId: number; startX: number; startY: number; startPosition: Position; boardRect: DOMRect };
+type TutorialDrag = { filmId: string; pointerId: number; startX: number; startY: number; startPosition: Position; boardRect: DOMRect; targetRect: DOMRect; element: HTMLElement };
 
 const tutorialDirector = directors.find((director) => director.id === "stanley-kubrick") ?? directors[0];
 const wrongFilm = directors.find((director) => director.id === "ridley-scott")?.films[0] ?? directors[1].films[0];
@@ -59,6 +59,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   const boardRef = useRef<HTMLDivElement | null>(null);
   const directorRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<TutorialDrag | null>(null);
+  const hoveringDirectorRef = useRef(false);
   const timersRef = useRef<number[]>([]);
 
   const schedule = (callback: () => void, delay: number) => {
@@ -93,13 +94,14 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   };
 
   const startDragging = (event: ReactPointerEvent<HTMLElement>, filmId: string) => {
-    if (!isDragPhase || filmId !== focusFilmId || !boardRef.current) {
+    if (!isDragPhase || filmId !== focusFilmId || !boardRef.current || !directorRef.current) {
       setStatusMessage(isDragPhase ? "Use the glowing ticket for this step." : "This step uses the hint controls below.");
       return;
     }
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { filmId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startPosition: positions[filmId], boardRect: boardRef.current.getBoundingClientRect() };
+    dragRef.current = { filmId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startPosition: positions[filmId], boardRect: boardRef.current.getBoundingClientRect(), targetRect: directorRef.current.getBoundingClientRect(), element: event.currentTarget };
+    hoveringDirectorRef.current = false;
     setDraggingFilmId(filmId);
     setStatusMessage("Keep holding. Move the ticket over the blue Director card.");
   };
@@ -107,11 +109,18 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   const moveDragging = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const x = drag.startPosition.x + ((event.clientX - drag.startX) / drag.boardRect.width) * 100;
-    const y = drag.startPosition.y + ((event.clientY - drag.startY) / drag.boardRect.height) * 100;
-    setPositions((current) => ({ ...current, [drag.filmId]: { ...drag.startPosition, x: Math.max(0, Math.min(82, x)), y: Math.max(0, Math.min(78, y)) } }));
-    const target = directorRef.current?.getBoundingClientRect();
-    setHoveringDirector(Boolean(target && event.clientX >= target.left && event.clientX <= target.right && event.clientY >= target.top && event.clientY <= target.bottom));
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    const x = Math.max(0, Math.min(82, drag.startPosition.x + (deltaX / drag.boardRect.width) * 100));
+    const y = Math.max(0, Math.min(78, drag.startPosition.y + (deltaY / drag.boardRect.height) * 100));
+    const visualDeltaX = ((x - drag.startPosition.x) / 100) * drag.boardRect.width;
+    const visualDeltaY = ((y - drag.startPosition.y) / 100) * drag.boardRect.height;
+    drag.element.style.transform = `translate3d(${visualDeltaX}px, ${visualDeltaY}px, 0) rotate(0deg) scale(1.08)`;
+    const isHoveringDirector = event.clientX >= drag.targetRect.left && event.clientX <= drag.targetRect.right && event.clientY >= drag.targetRect.top && event.clientY <= drag.targetRect.bottom;
+    if (isHoveringDirector !== hoveringDirectorRef.current) {
+      hoveringDirectorRef.current = isHoveringDirector;
+      setHoveringDirector(isHoveringDirector);
+    }
   };
 
   const finishCorrectMatch = (filmId: string) => {
@@ -149,25 +158,29 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   const stopDragging = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const target = directorRef.current?.getBoundingClientRect();
-    const landed = Boolean(target && event.clientX >= target.left && event.clientX <= target.right && event.clientY >= target.top && event.clientY <= target.bottom);
+    const landed = event.clientX >= drag.targetRect.left && event.clientX <= drag.targetRect.right && event.clientY >= drag.targetRect.top && event.clientY <= drag.targetRect.bottom;
     dragRef.current = null;
+    hoveringDirectorRef.current = false;
     setDraggingFilmId(null);
     setHoveringDirector(false);
     if (!landed) {
-      setPositions((current) => ({ ...current, [drag.filmId]: drag.startPosition }));
+      drag.element.style.transform = "";
       setStatusMessage("Almost. Drop the ticket directly on the glowing blue Director card.");
       return;
     }
-    if (phase === "wrong-match") finishWrongMatch(drag.filmId, drag.startPosition);
+    if (phase === "wrong-match") {
+      drag.element.style.transform = "";
+      finishWrongMatch(drag.filmId, drag.startPosition);
+    }
     else finishCorrectMatch(drag.filmId);
   };
 
   const cancelDragging = () => {
     const drag = dragRef.current;
     if (!drag) return;
-    setPositions((current) => ({ ...current, [drag.filmId]: drag.startPosition }));
+    drag.element.style.transform = "";
     dragRef.current = null;
+    hoveringDirectorRef.current = false;
     setDraggingFilmId(null);
     setHoveringDirector(false);
   };

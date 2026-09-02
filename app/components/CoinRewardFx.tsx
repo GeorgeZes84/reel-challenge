@@ -11,6 +11,9 @@ export type CoinRewardEvent = {
   amount: number;
   startX: number;
   startY: number;
+  arcX: number;
+  arcY: number;
+  targetX: number;
   targetY: number;
   bonusAmount?: number;
   multiplier?: number;
@@ -29,9 +32,12 @@ export function CoinRewardLayer({ events }: { events: readonly CoinRewardEvent[]
         <div
           className="coin-reward-event"
           style={{
-            "--coin-start-x": `${event.startX}%`,
-            "--coin-start-y": `${event.startY}%`,
-            "--coin-target-y": `${event.targetY}%`,
+            "--coin-start-x": `${event.startX}px`,
+            "--coin-start-y": `${event.startY}px`,
+            "--coin-arc-x": `${event.arcX}px`,
+            "--coin-arc-y": `${event.arcY}px`,
+            "--coin-target-x": `${event.targetX}px`,
+            "--coin-target-y": `${event.targetY}px`,
           } as CSSProperties}
           key={event.id}
         >

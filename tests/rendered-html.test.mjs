@@ -97,7 +97,11 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
 
   assert.match(page, /attemptAssignment/);
   assert.match(page, /directorAtPoint/);
-  assert.match(page, /if \(targetDirectorId\) resolveAssignment/);
+  assert.match(page, /resolveAssignment\(drag\.filmId, targetDirectorId, drag\.startPosition\)/);
+  const dragMoveSource = page.slice(page.indexOf("const moveDragging"), page.indexOf("const stopDragging"));
+  assert.match(dragMoveSource, /drag\.element\.style\.transform/);
+  assert.doesNotMatch(dragMoveSource, /setPositions/);
+  assert.doesNotMatch(dragMoveSource, /getBoundingClientRect/);
   assert.match(page, /onPointerCancel=\{cancelDragging\}/);
   assert.match(page, /onLostPointerCapture=\{cancelDragging\}/);
   assert.doesNotMatch(page, /onPointerCancel=\{stopDragging\}/);
@@ -207,6 +211,10 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(tutorial, /<MovieTicket/);
   assert.match(tutorial, /<DirectorSlot/);
   assert.match(tutorial, /setPointerCapture/);
+  const tutorialDragMoveSource = tutorial.slice(tutorial.indexOf("const moveDragging"), tutorial.indexOf("const finishCorrectMatch"));
+  assert.match(tutorialDragMoveSource, /drag\.element\.style\.transform/);
+  assert.doesNotMatch(tutorialDragMoveSource, /setPositions/);
+  assert.doesNotMatch(tutorialDragMoveSource, /getBoundingClientRect/);
   assert.match(tutorial, /finishWrongMatch/);
   assert.match(tutorial, /director-complete/);
   assert.match(tutorial, /Try free Movie Hint/);
@@ -347,6 +355,10 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /\.director-board-screen::before, \.director-board-screen::after/);
   assert.match(styles, /animation:\s*pressure-smoke-drift 22s ease-in-out infinite alternate/);
   assert.match(styles, /@keyframes pressure-smoke-drift/);
+  assert.doesNotMatch(styles.match(/@keyframes pressure-smoke-drift \{[\s\S]*?\n\}/)?.[0] ?? "", /background-position/);
+  assert.match(styles, /@keyframes director-arrival-flight\s*\{[^}]*translate3d\(var\(--arrival-start-x\)/s);
+  assert.doesNotMatch(styles.match(/@keyframes director-arrival-flight \{[^}]*\}/)?.[0] ?? "", /\bleft:|\btop:/);
+  assert.match(styles, /@keyframes coin-flight\s*\{[^}]*translate3d\(var\(--coin-start-x\)/s);
   assert.match(styles, /\.hint-panel\.is-rescue\s*\{[^}]*animation:\s*hint-shop-rescue 1s ease-in-out 4/s);
   assert.match(styles, /\.hint-sticker\.is-new\s*\{[^}]*animation:\s*hint-sticker-plop/s);
   assert.doesNotMatch(styles, /\.movie-ticket:(?:hover|focus)[^,{]*\.hint-sticker\.is-latest \.hint-sticker-popover/);
