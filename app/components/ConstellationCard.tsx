@@ -122,6 +122,7 @@ type DirectorSlotProps = {
   isReceiving: boolean;
   dropState: "neutral" | "correct" | "wrong" | null;
   isSpawning: boolean;
+  arrivalImpactOrder: number | null;
   isArchiving: boolean;
   isEliminated: boolean;
   isSelected: boolean;
@@ -130,7 +131,7 @@ type DirectorSlotProps = {
   onOpenDossier: (filmId: string) => void;
 };
 
-export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isReceiving, dropState, isSpawning, isArchiving, isEliminated, isSelected, registerRef, onSelect, onOpenDossier }: DirectorSlotProps) {
+export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isReceiving, dropState, isSpawning, arrivalImpactOrder, isArchiving, isEliminated, isSelected, registerRef, onSelect, onOpenDossier }: DirectorSlotProps) {
   if (!director) {
     return (
       <div
@@ -151,7 +152,8 @@ export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isRe
   return (
     <div
       ref={(element) => registerRef(director.id, element)}
-      className={`director-slot is-active ${isReceiving ? "is-receiving" : ""} ${dropState ? `is-${dropState}` : ""} ${isSpawning ? "is-spawning" : ""} ${isArchiving ? "is-archiving" : ""} ${isEliminated ? "is-eliminated" : ""} ${isSelected ? "is-selected" : ""}`}
+      className={`director-slot is-active ${isReceiving ? "is-receiving" : ""} ${dropState ? `is-${dropState}` : ""} ${isSpawning ? "is-spawning" : ""} ${arrivalImpactOrder !== null ? "is-arrival-impact" : ""} ${isArchiving ? "is-archiving" : ""} ${isEliminated ? "is-eliminated" : ""} ${isSelected ? "is-selected" : ""}`}
+      style={arrivalImpactOrder === null ? undefined : { "--arrival-impact-order": arrivalImpactOrder } as CSSProperties}
       data-slot={slotIndex}
       data-director-id={director.id}
       data-drop-target="director"

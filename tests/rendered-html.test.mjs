@@ -76,13 +76,14 @@ test("server-renders The Director Game's complete opening state", async () => {
 });
 
 test("keeps the CRT game local, data-driven and answer-safe", async () => {
-  const [page, shell, cards, tutorial, hud, coinFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
+  const [page, shell, cards, tutorial, hud, coinFx, directorArrivalFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
     readFile(new URL("../app/components/DirectorGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CrtTelevision.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ConstellationCard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/GameLoopTutorial.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/GameHud.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CoinRewardFx.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/DirectorArrivalFx.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CompletionArchiveSequence.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/RankPopup.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/StageResultsOverlay.tsx", import.meta.url), "utf8"),
@@ -131,6 +132,11 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /setLastHintByFilm/);
   assert.match(page, /1200/);
   assert.match(page, /<CoinRewardLayer events=\{coinRewards\}/);
+  assert.match(page, /directorCounterRef/);
+  assert.match(page, /getBoundingClientRect/);
+  assert.match(page, /requestAnimationFrame/);
+  assert.match(page, /<DirectorArrivalFx event=\{directorArrival\}/);
+  assert.match(page, /arrivalImpactOrder=/);
   assert.match(page, /setArchiveSequence\(/);
   assert.match(page, /playSound\("punch"\)/);
   assert.match(page, /\[70, 170, 270\]\.forEach/);
@@ -168,6 +174,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(cards, /data-drop-target="false"/);
   assert.match(cards, /data-drop-target="director"/);
   assert.match(cards, /data-socket-count=\{socketCount\}/);
+  assert.match(cards, /is-arrival-impact/);
+  assert.match(cards, /--arrival-impact-order/);
   assert.match(cards, /isHighlighted = dropState === "neutral" && !isFilled/);
   assert.match(cards, /const displayGenre = genreFamily\(film\.genre\)/);
   assert.match(cards, /"--ticket-accent": genreColor\(film\.genre\)/);
@@ -381,7 +389,17 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /\.ticket-punches i/);
   assert.match(styles, /\.movie-ticket::before[^}]*-webkit-mask-image:\s*var\(--ticket-hole-mask\)[^}]*mask-composite:\s*intersect/s);
   assert.doesNotMatch(styles, /\.movie-ticket\.is-rejected[^}]*opacity:\s*0/s);
-  assert.match(styles, /@keyframes director-plop/);
+  assert.match(directorArrivalFx, /createPortal/);
+  assert.match(directorArrivalFx, /director-arrival-flight/);
+  assert.match(directorArrivalFx, /--arrival-start-x/);
+  assert.match(hud, /next-director-panel[^\n]*is-launching/);
+  assert.match(hud, /ref=\{directorCounterRef\}/);
+  assert.match(styles, /@keyframes director-arrival-flight/);
+  assert.match(styles, /@keyframes director-arrival-destination/);
+  assert.match(styles, /@keyframes director-arrival-impact/);
+  assert.match(styles, /@keyframes director-counter-launch/);
+  assert.match(styles, /\.director-slot\.is-arrival-impact/);
+  assert.doesNotMatch(styles, /@keyframes director-plop/);
   assert.match(styles, /@keyframes coin-flight/);
   assert.match(styles, /@keyframes coin-readout-pop/);
   assert.match(styles, /\.director-board-screen\.pressure-1/);
@@ -392,6 +410,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /@keyframes next-director-safe-pulse/);
   assert.match(styles, /@keyframes next-director-safe-pulse[\s\S]*?background-color:\s*#66333a/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.next-director-panel\.is-last-safe\s*\{[^}]*animation:\s*none/s);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.director-arrival-flight\s*\{[^}]*display:\s*none/s);
   assert.match(styles, /\.director-slots\s*\{[^}]*top:\s*clamp\(116px,\s*27\.5%,\s*160px\)/s);
   assert.match(styles, /@keyframes rank-pop/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);

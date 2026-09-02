@@ -34,6 +34,8 @@ type GameHudProps = {
   message: string;
   coinRewards: readonly CoinRewardEvent[];
   coinWalletRef: RefObject<HTMLDivElement | null>;
+  directorCounterRef: RefObject<HTMLElement | null>;
+  directorArrivalActive: boolean;
   onHint: (type: HintType) => void;
   onDirectorHint: (type: DirectorHintType) => void;
   onOpenDirectorHint: (type: DirectorHintType) => void;
@@ -51,6 +53,8 @@ export function GameHud({
   message,
   coinRewards,
   coinWalletRef,
+  directorCounterRef,
+  directorArrivalActive,
   onHint,
   onDirectorHint,
   onOpenDirectorHint,
@@ -82,7 +86,8 @@ export function GameHud({
       </section>
 
       <section
-        className={`hud-panel next-director-panel arrival-${arrivalState}${isLastSafeMove ? " is-last-safe" : ""}`}
+        className={`hud-panel next-director-panel arrival-${arrivalState}${isLastSafeMove ? " is-last-safe" : ""}${directorArrivalActive ? " is-launching" : ""}`}
+        ref={directorCounterRef}
         role="status"
         aria-live="polite"
         aria-atomic="true"

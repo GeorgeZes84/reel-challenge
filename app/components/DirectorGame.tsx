@@ -33,6 +33,7 @@ import {
 } from "./CoinRewardFx";
 import { CompletionArchiveSequence } from "./CompletionArchiveSequence";
 import { DirectorSlot, MovieTicket, type Position } from "./ConstellationCard";
+import { DirectorArrivalFx, type DirectorArrivalEvent } from "./DirectorArrivalFx";
 import { GameHud } from "./GameHud";
 import { GameLoopTutorial } from "./GameLoopTutorial";
 import { RankPopup } from "./RankPopup";
@@ -100,6 +101,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [rejectedFilmId, setRejectedFilmId] = useState<string | null>(null);
   const [spawningMovieIds, setSpawningMovieIds] = useState<string[]>(() => game.visibleMovieIds);
   const [spawningDirectorId, setSpawningDirectorId] = useState<string | null>(null);
+  const [directorArrival, setDirectorArrival] = useState<DirectorArrivalEvent | null>(null);
   const [directorFeedback, setDirectorFeedback] = useState<DirectorFeedback>(null);
   const [rankToast, setRankToast] = useState<ReturnType<typeof currentRank> | null>(null);
   const [archiveSequence, setArchiveSequence] = useState<ArchiveSequence>(null);
@@ -113,7 +115,9 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
   const boardRef = useRef<HTMLElement | null>(null);
   const coinWalletRef = useRef<HTMLDivElement | null>(null);
+  const directorCounterRef = useRef<HTMLElement | null>(null);
   const directorRefs = useRef(new Map<string, HTMLDivElement>());
+  const directorArrivalSerialRef = useRef(0);
   const coinRewardSerialRef = useRef(0);
   const dragRef = useRef<DragRecord | null>(null);
   const didMoveRef = useRef(false);
@@ -140,6 +144,43 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     const timer = window.setTimeout(() => setSpawningMovieIds([]), 520);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!spawningDirectorId) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const source = directorCounterRef.current?.getBoundingClientRect();
+      const target = directorRefs.current.get(spawningDirectorId)?.getBoundingClientRect();
+      const director = lookups.directorsById.get(spawningDirectorId);
+      if (!source || !target || !director) return;
+
+      const startX = source.left + source.width / 2 - target.width / 2;
+      const startY = source.top + source.height / 2 - target.height / 2;
+      const endX = target.left;
+      const endY = target.top;
+      const horizontalTravel = endX - startX;
+      const arcLift = Math.min(150, Math.max(70, Math.abs(horizontalTravel) * .18));
+      directorArrivalSerialRef.current += 1;
+      setDirectorArrival({
+        id: `${spawningDirectorId}-${directorArrivalSerialRef.current}`,
+        directorName: director.name,
+        initials: director.initials,
+        startX,
+        startY,
+        arcX: startX + horizontalTravel * .47,
+        arcY: Math.min(startY, endY) - arcLift,
+        approachX: endX + Math.min(42, Math.max(24, Math.abs(horizontalTravel) * .05)),
+        approachY: endY - 8,
+        endX,
+        endY,
+        width: target.width,
+        height: target.height,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [spawningDirectorId, lookups.directorsById]);
 
   useEffect(() => {
     if (!dossierFilmId && !showHelp) return;
@@ -276,9 +317,13 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       setOpenDirectorHintKey((current) => current?.directorId === outcome.completedDirectorId ? null : current);
     }
     if (outcome.spawnedDirectorId) {
+      setDirectorArrival(null);
       setSpawningDirectorId(outcome.spawnedDirectorId);
       playSound("spawn");
-      schedule(() => setSpawningDirectorId(null), 700);
+      schedule(() => {
+        setSpawningDirectorId(null);
+        setDirectorArrival(null);
+      }, 1100);
     }
     if (outcome.rankUnlocked && outcome.state.status === "playing") {
       schedule(() => {
@@ -627,6 +672,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       message={hudMessage}
       coinRewards={coinRewards}
       coinWalletRef={coinWalletRef}
+      directorCounterRef={directorCounterRef}
+      directorArrivalActive={Boolean(spawningDirectorId)}
       onHint={buyHint}
       onDirectorHint={buyDirectorHint}
       onOpenDirectorHint={reopenDirectorHint}
@@ -643,8 +690,12 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     </>
   );
 
+  const arrivalSlotIndex = spawningDirectorId ? game.activeDirectorIds.indexOf(spawningDirectorId) : -1;
+
   return (
-    <CrtTelevision
+    <>
+      <DirectorArrivalFx event={directorArrival} />
+      <CrtTelevision
       crtEnabled={crtEnabled}
       console={consoleContent}
       controls={controls}
@@ -718,6 +769,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
                 isReceiving={Boolean(draggingFilmId)}
                 dropState={dropState}
                 isSpawning={spawningDirectorId === directorId}
+                arrivalImpactOrder={spawningDirectorId && directorId && slotIndex < arrivalSlotIndex ? arrivalSlotIndex - slotIndex - 1 : null}
                 isArchiving={archiveSequence?.directorId === directorId}
                 isEliminated={Boolean(directorId && eliminationIds.includes(directorId))}
                 isSelected={hintContextDirectorId === directorId}
@@ -771,6 +823,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           </div>
         ) : null}
       </section>
-    </CrtTelevision>
+      </CrtTelevision>
+    </>
   );
 }
