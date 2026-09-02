@@ -648,6 +648,19 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       crtEnabled={crtEnabled}
       console={consoleContent}
       controls={controls}
+      screenSticker={(
+        <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
+          <strong>Genre key</strong>
+          <div>
+            {GENRE_LEGEND.map(({ genre, color }) => (
+              <span key={genre}>
+                <i style={{ "--genre-color": color } as CSSProperties} aria-hidden="true" />
+                {genre}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       status={game.status === "playing" ? hudMessage : game.status === "stage_complete" ? `Stage ${game.stageNumber} complete · results ready` : game.status === "won" ? "Archive complete · final results ready" : "Signal overload · final results ready"}
     >
       <section
@@ -660,29 +673,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         aria-label="Movie sorting board"
       >
         <div className="screen-grid" aria-hidden="true" />
-        <div className="on-air-bug" aria-hidden="true"><i /> ON AIR</div>
-        <div
-          className={`screen-instruction match-route ${isCleanup ? "is-cleanup" : ""}`}
-          aria-label={isCleanup ? `Cleanup phase. ${game.visibleMovieIds.length} movies remain and solved tickets will not be replaced.` : "Drag a movie ticket to a director"}
-        >
-          {isCleanup ? (
-            <>
-              <b>CLEANUP PHASE <i aria-hidden="true">↓</i> {game.visibleMovieIds.length} LEFT</b>
-              <span>Every match now clears space. No replacements.</span>
-            </>
-          ) : (
-            <>
-              <b>MOVIE TICKET <i aria-hidden="true">→</i> DIRECTOR</b>
-              <span>{draggingFilmId ? "Release on a glowing director. Its three sockets are ready." : "Pick up a ticket, then release it on a director."}</span>
-            </>
-          )}
-          <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
-            <strong>Color = Genre</strong>
-            <div aria-hidden="true">
-              {GENRE_LEGEND.map(({ genre, color }) => <i style={{ "--genre-color": color } as CSSProperties} title={genre} key={genre} />)}
-            </div>
-          </div>
-        </div>
 
         {game.visibleMovieIds.map((filmId) => {
           const film = lookups.filmsById.get(filmId);

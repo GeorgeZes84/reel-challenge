@@ -6,11 +6,12 @@ type CrtTelevisionProps = {
   children: ReactNode;
   console: ReactNode;
   controls: ReactNode;
+  screenSticker?: ReactNode;
   crtEnabled: boolean;
   status: string;
 };
 
-export function CrtTelevision({ children, console, controls, crtEnabled, status }: CrtTelevisionProps) {
+export function CrtTelevision({ children, console, controls, screenSticker, crtEnabled, status }: CrtTelevisionProps) {
   return (
     <main className="director-game" data-crt={crtEnabled ? "on" : "off"}>
       <div className="tv-aerial" aria-hidden="true"><i /><i /></div>
@@ -38,6 +39,7 @@ export function CrtTelevision({ children, console, controls, crtEnabled, status 
               <div className="crt-scanlines" aria-hidden="true" />
               <div className="crt-vignette" aria-hidden="true" />
             </div>
+            {screenSticker ? <div className="screen-bottom-sticker">{screenSticker}</div> : null}
           </div>
           <aside className="crt-console" aria-label="Game console">{console}</aside>
         </div>

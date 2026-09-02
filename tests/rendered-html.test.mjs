@@ -30,8 +30,10 @@ test("server-renders The Director Game's complete opening state", async () => {
   assert.equal((html.match(/data-socket-count="3"/g) ?? []).length, 2);
   assert.equal((html.match(/class="director-socket\b/g) ?? []).length, 6);
   assert.equal((html.match(/class="game-loop-step\b/g) ?? []).length, 3);
-  assert.match(html, /class="screen-instruction match-route [^"]*"[^>]*aria-label="Drag a movie ticket to a director"/i);
-  assert.match(html, /MOVIE TICKET[\s\S]*?DIRECTOR/i);
+  assert.doesNotMatch(html, /class="screen-instruction|ON AIR/i);
+  assert.match(html, /class="screen-bottom-sticker"/i);
+  assert.match(html, /class="genre-rule"[^>]*aria-label="Color equals genre:/i);
+  assert.match(html, /Genre key[\s\S]*?Romance[\s\S]*?Crime\/Thriller/i);
   assert.match(html, /MATCH 3 FILMS/i);
   assert.match(html, /Complete a director’s set/i);
   assert.match(html, /CLEAR DIRECTORS/i);
@@ -135,7 +137,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /isArchiving=\{archiveSequence\?\.directorId === directorId\}/);
   assert.match(page, /<CompletionArchiveSequence directorName=\{archiveSequence\.directorName\} filmTitles=\{archiveSequence\.filmTitles\}/);
   assert.doesNotMatch(page, /completionBurst|completion-burst|completion-ticket/);
-  assert.match(page, /Color = Genre/i);
+  assert.match(page, /screenSticker=/);
+  assert.match(page, /Genre key/i);
   assert.match(page, /GENRE_LEGEND\.map/);
   assert.match(page, /Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple/);
   assert.doesNotMatch(page, /ticket-trailer|trailer-overlay/);
@@ -314,6 +317,11 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.doesNotMatch(styles, /\.director-board-screen\s*\{[^}]*touch-action:\s*none/s);
   assert.match(styles, /contain:\s*layout paint/);
   assert.match(styles, /\.genre-rule/);
+  assert.match(styles, /\.screen-bottom-sticker/);
+  assert.doesNotMatch(styles, /\.screen-instruction|\.on-air-bug/);
+  assert.match(styles, /\.director-board-screen::before, \.director-board-screen::after/);
+  assert.match(styles, /animation:\s*pressure-smoke-drift 22s ease-in-out infinite alternate/);
+  assert.match(styles, /@keyframes pressure-smoke-drift/);
   assert.match(styles, /\.hint-panel\.is-rescue\s*\{[^}]*animation:\s*hint-shop-rescue 1s ease-in-out 4/s);
   assert.match(styles, /\.hint-sticker\.is-new\s*\{[^}]*animation:\s*hint-sticker-plop/s);
   assert.doesNotMatch(styles, /\.movie-ticket:(?:hover|focus)[^,{]*\.hint-sticker\.is-latest \.hint-sticker-popover/);
@@ -352,7 +360,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /\.ticket-meta\s*\{/);
   assert.doesNotMatch(styles, /\.ticket-meta[^}]*display:\s*none/s);
   assert.match(styles, /\.director-mini-stack button small/);
-  assert.equal((styles.match(/animation:[^;{}]*infinite/g) ?? []).length, 1);
+  assert.equal((styles.match(/animation:[^;{}]*infinite/g) ?? []).length, 3);
   assert.match(styles, /\.next-director-panel\.is-last-safe\s*\{[^}]*animation:\s*next-director-safe-pulse 2s ease-in-out infinite/s);
   assert.doesNotMatch(styles, /@keyframes crt-noise/);
   assert.match(styles, /@keyframes tutorial-socket-fill/);
