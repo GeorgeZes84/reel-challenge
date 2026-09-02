@@ -66,6 +66,7 @@ export type GameState = {
   stageDirectorIds: string[];
   directorFilmIds: Record<string, string[]>;
   activeDirectorIds: string[];
+  directorSlots: Array<string | null>;
   upcomingDirectorIds: string[];
   assignments: Record<string, string[]>;
   victoryDirectors: VictoryDirector[];
@@ -328,6 +329,17 @@ function directorCountdown(config: GameConfig, completedCount: number) {
     ?? config.initialDirectorCountdown;
 }
 
+function initialDirectorSlots(directorIds: readonly string[], maximumSlots: number) {
+  return Array.from({ length: maximumSlots }, (_, index) => directorIds[index] ?? null);
+}
+
+function fillFirstDirectorSlot(slots: readonly (string | null)[], directorId: string) {
+  const nextSlots = [...slots];
+  const openSlot = nextSlots.indexOf(null);
+  if (openSlot >= 0) nextSlots[openSlot] = directorId;
+  return nextSlots;
+}
+
 function advanceMoveAndDirector(state: GameState, config: GameConfig) {
   const moved: GameState = {
     ...state,
@@ -361,6 +373,7 @@ function advanceMoveAndDirector(state: GameState, config: GameConfig) {
     ...moved,
     movies: nextMovies,
     activeDirectorIds: [...moved.activeDirectorIds, spawnedDirectorId],
+    directorSlots: fillFirstDirectorSlot(moved.directorSlots, spawnedDirectorId),
     upcomingDirectorIds: remainingUpcoming,
     // An emergency arrival prevents an empty-board lock without consuming the
     // scheduled timer. A normal due arrival starts the next countdown.
@@ -404,6 +417,7 @@ export function createInitialGame(directorPool: readonly Director[], seed: strin
     stageDirectorIds,
     directorFilmIds,
     activeDirectorIds: stageDirectorIds.slice(0, config.startingDirectors),
+    directorSlots: initialDirectorSlots(stageDirectorIds.slice(0, config.startingDirectors), config.maximumActiveDirectors),
     upcomingDirectorIds: stageDirectorIds.slice(config.startingDirectors),
     assignments: Object.fromEntries(runDirectorIds.map((directorId) => [directorId, []])),
     victoryDirectors: [],
@@ -488,6 +502,7 @@ export function startNextStage(state: GameState, config: GameConfig = GAME_CONFI
     stagePhase: "active",
     stageDirectorIds,
     activeDirectorIds: stageDirectorIds.slice(0, config.startingDirectors),
+    directorSlots: initialDirectorSlots(stageDirectorIds.slice(0, config.startingDirectors), config.maximumActiveDirectors),
     upcomingDirectorIds: stageDirectorIds.slice(config.startingDirectors),
     visibleMovieIds: [],
     nextDirectorIn: config.initialDirectorCountdown,
@@ -581,6 +596,7 @@ export function attemptAssignment(
   const rawScore = matchScore + (completed ? config.directorCompletionScore : 0);
   const scoreAwarded = rawScore * multiplier;
   let activeDirectorIds = state.activeDirectorIds;
+  let directorSlots = state.directorSlots;
   let victoryDirectors = state.victoryDirectors;
   let coins = state.coins + config.correctMatchCoins + comboBonusCoins;
   const score = state.score + scoreAwarded;
@@ -588,6 +604,7 @@ export function attemptAssignment(
 
   if (completed) {
     activeDirectorIds = state.activeDirectorIds.filter((id) => id !== targetDirectorId);
+    directorSlots = state.directorSlots.map((directorId) => directorId === targetDirectorId ? null : directorId);
     const completedFilms = nextAssignments[targetDirectorId];
     for (const completedFilmId of completedFilms) {
       nextMovies[completedFilmId] = { ...nextMovies[completedFilmId], status: "completed" };
@@ -605,6 +622,7 @@ export function attemptAssignment(
     movies: nextMovies,
     assignments: nextAssignments,
     activeDirectorIds,
+    directorSlots,
     victoryDirectors,
     visibleMovieIds: remainingVisible,
     correctAttempts: state.correctAttempts + 1,

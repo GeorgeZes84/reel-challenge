@@ -7,20 +7,20 @@ import { canUseEliminationHint, GAME_CONFIG, hintCostForMovie, HINT_TYPES, type 
 import { CoinWalletEffects, type CoinRewardEvent } from "./CoinRewardFx";
 
 const hintCopy: Record<HintType, { icon: string; name: string; detail: string }> = {
-  movieIdentification: { icon: "▣", name: "Frame check", detail: "See one production frame" },
-  releaseDate: { icon: "#", name: "Release date", detail: "Reveal the movie's release year" },
-  verbalDirectorClue: { icon: "≡", name: "Director note", detail: "Reveal another credit" },
-  elimination: { icon: "×", name: "Cross one out", detail: "Eliminate another candidate" },
-  directAnswer: { icon: "!", name: "EMERGENCY ANSWER", detail: "Reveal the correct director · no move spent · reduced score" },
+  movieIdentification: { icon: "▣", name: "Frame check", detail: "Strong clue · See one production frame" },
+  releaseDate: { icon: "#", name: "Release date", detail: "Small clue · Reveal the movie's release year" },
+  verbalDirectorClue: { icon: "≡", name: "Director note", detail: "Useful clue · Reveal another credit" },
+  elimination: { icon: "×", name: "Cross one out", detail: "Useful clue · Eliminate another candidate" },
+  directAnswer: { icon: "!", name: "EMERGENCY ANSWER", detail: "Answer reveal · No move spent · reduced score" },
 };
 
 const directorHintCopy: Record<DirectorHintType, { icon: string; detail: string }> = {
-  origin: { icon: "◎", detail: "Where this filmmaker comes from" },
-  careerPeriod: { icon: "⌛", detail: "When their directing voice emerged" },
-  genreTendency: { icon: "▦", detail: "The genres they repeatedly explore" },
-  thematicDNA: { icon: "◇", detail: "The ideas that recur across their work" },
-  styleNote: { icon: "✦", detail: "A recognizable visual or formal habit" },
-  knownFor: { icon: "★", detail: "Their wider contribution to cinema" },
+  origin: { icon: "◎", detail: "Broad clue · Where this filmmaker comes from" },
+  careerPeriod: { icon: "⌛", detail: "Strong clue · When their directing voice emerged" },
+  genreTendency: { icon: "▦", detail: "Useful clue · Genres they repeatedly explore" },
+  thematicDNA: { icon: "◇", detail: "Broad clue · Ideas that recur across their work" },
+  styleNote: { icon: "✦", detail: "Useful clue · A recognizable visual or formal habit" },
+  knownFor: { icon: "★", detail: "Broad clue · Their wider contribution to cinema" },
 };
 
 type GameHudProps = {
@@ -74,7 +74,8 @@ export function GameHud({
   return (
     <>
       <section className={`hud-panel score-panel multiplier-${game.currentMultiplier}`} aria-label={`Score ${game.score}. Combo ${game.correctStreak}. Multiplier ${game.currentMultiplier} times.`}>
-        <div className="score-heading"><span className="hud-label">Stage {game.stageNumber} · Total score</span><b>{stageVictories}/{game.stageDirectorIds.length} cleared</b></div>
+        <div className="stage-progress-line"><strong>STAGE {game.stageNumber}</strong><b>DIRECTORS {stageVictories} / {game.stageDirectorIds.length}</b></div>
+        <div className="score-heading"><span className="hud-label">Total score</span><b>Persists across stages</b></div>
         <div className="score-line">
           <strong>{game.score.toLocaleString("en-US")}</strong>
           <div className="multiplier-badge" key={game.currentMultiplier}>
@@ -173,7 +174,7 @@ export function GameHud({
         <section className="hud-panel quick-file" aria-label={`Choose the director of ${selectedFilm.title} without dragging`}>
           <span className="hud-label">Choose this movie&apos;s director</span>
           <div>
-            {game.activeDirectorIds.map((directorId, index) => (
+            {game.directorSlots.filter((directorId): directorId is string => Boolean(directorId)).map((directorId, index) => (
               <button
                 type="button"
                 onClick={() => onAssign(directorId)}

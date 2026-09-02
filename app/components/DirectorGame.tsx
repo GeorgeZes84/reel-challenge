@@ -108,6 +108,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [scoreBurst, setScoreBurst] = useState<string | null>(null);
   const [coinRewards, setCoinRewards] = useState<CoinRewardEvent[]>([]);
   const [showHelp, setShowHelp] = useState(true);
+  const [tutorialCompleted, setTutorialCompleted] = useState(false);
+  const [stageAnnouncement, setStageAnnouncement] = useState<number | null>(null);
   const [actionLocked, setActionLocked] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [crtEnabled, setCrtEnabled] = useState(true);
@@ -126,6 +128,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const wrongStreakRef = useRef(0);
   const hintRescueCooldownMoveRef = useRef(0);
+  const lastAnnouncedStageRef = useRef(0);
 
   const schedule = (callback: () => void, delay: number) => {
     const timer = window.setTimeout(() => {
@@ -133,6 +136,17 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       callback();
     }, delay);
     timersRef.current.push(timer);
+  };
+
+  const announceStage = (stageNumber: number) => {
+    lastAnnouncedStageRef.current = stageNumber;
+    setStageAnnouncement(stageNumber);
+    schedule(() => setStageAnnouncement((current) => current === stageNumber ? null : current), 1800);
+  };
+
+  const closeHelp = () => {
+    setShowHelp(false);
+    if (lastAnnouncedStageRef.current !== game.stageNumber) announceStage(game.stageNumber);
   };
 
   useEffect(() => () => {
@@ -329,7 +343,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       schedule(() => {
         setRankToast(outcome.rankUnlocked ?? null);
         schedule(() => setRankToast(null), 2800);
-      }, outcome.completedDirectorId ? 1050 : 0);
+      }, outcome.completedDirectorId ? 620 : 0);
     }
     if (outcome.completedDirectorId) {
       const completedName = lookups.directorsById.get(outcome.completedDirectorId)?.name ?? "Director";
@@ -364,8 +378,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         const completedName = lookups.directorsById.get(completedDirectorId)?.name ?? "Director";
         const victory = outcome.state.victoryDirectors.find((director) => director.directorId === completedDirectorId);
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const applyDelay = reducedMotion ? 80 : 1720;
-        const finishDelay = reducedMotion ? 140 : 1900;
+        const applyDelay = reducedMotion ? 80 : 900;
+        const finishDelay = reducedMotion ? 140 : 1120;
         setArchiveSequence({
           directorId: completedDirectorId,
           directorName: completedName,
@@ -375,26 +389,28 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           playSound("punch");
           schedule(() => playSound("complete"), 70);
         } else {
-          [70, 170, 270].forEach((delay) => schedule(() => playSound("pick"), delay));
-          schedule(() => playSound("punch"), 650);
-          schedule(() => playSound("complete"), 920);
+          [50, 130, 210].forEach((delay) => schedule(() => playSound("pick"), delay));
+          schedule(() => playSound("punch"), 390);
+          schedule(() => playSound("complete"), 610);
         }
-        schedule(() => applyOutcome(outcome), applyDelay);
+        schedule(() => {
+          applyOutcome(outcome);
+          setActionLocked(false);
+        }, applyDelay);
         schedule(() => {
           setArchiveSequence(null);
           setDirectorFeedback(null);
           setScoreBurst(null);
-          setActionLocked(false);
         }, finishDelay);
         return;
       }
       playSound("correct");
       applyOutcome(outcome);
+      setActionLocked(false);
       schedule(() => {
         setDirectorFeedback(null);
         setScoreBurst(null);
-        setActionLocked(false);
-      }, 520);
+      }, 360);
       return;
     }
 
@@ -406,6 +422,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setHudMessage(`Rejected. One punch added—the ticket stays on the table and remains playable.`);
     playSound("wrong");
     applyOutcome(outcome);
+    setActionLocked(false);
     wrongStreakRef.current += 1;
     if (wrongStreakRef.current >= 4 && outcome.state.status === "playing" && outcome.state.moveCount >= hintRescueCooldownMoveRef.current) {
       wrongStreakRef.current = 0;
@@ -416,8 +433,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     schedule(() => {
       setRejectedFilmId(null);
       setDirectorFeedback(null);
-      setActionLocked(false);
-    }, 620);
+    }, 460);
   };
 
   const startDragging = (event: ReactPointerEvent<HTMLElement>, filmId: string) => {
@@ -622,10 +638,13 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setScoreBurst(null);
     setCoinRewards([]);
     setShowHelp(false);
+    setStageAnnouncement(null);
+    lastAnnouncedStageRef.current = 0;
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = 0;
     setHudMessage("Fresh tape, fresh cast. Two directors are live.");
+    announceStage(1);
     schedule(() => setSpawningMovieIds([]), 520);
   };
 
@@ -657,7 +676,10 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = next.moveCount;
     setHudMessage(next.status === "playing" ? `Stage ${next.stageNumber}. New directors, same high-score run.` : "Every available director is archived.");
-    if (next.status === "playing") schedule(() => setSpawningMovieIds([]), 520);
+    if (next.status === "playing") {
+      announceStage(next.stageNumber);
+      schedule(() => setSpawningMovieIds([]), 520);
+    }
   };
 
   const consoleContent = (
@@ -690,7 +712,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     </>
   );
 
-  const arrivalSlotIndex = spawningDirectorId ? game.activeDirectorIds.indexOf(spawningDirectorId) : -1;
+  const arrivalSlotIndex = spawningDirectorId ? game.directorSlots.indexOf(spawningDirectorId) : -1;
 
   return (
     <>
@@ -752,7 +774,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
         <div className="director-slots" aria-label={`${game.activeDirectorIds.length} active directors in 5 slots`}>
           {Array.from({ length: GAME_CONFIG.maximumActiveDirectors }, (_, slotIndex) => {
-            const directorId = game.activeDirectorIds[slotIndex];
+            const directorId = game.directorSlots[slotIndex];
             const director = directorId ? lookups.directorsById.get(directorId) ?? null : null;
             const assignedFilmIds = directorId ? game.assignments[directorId] ?? [] : [];
             const assignedFilms = assignedFilmIds.map((id) => lookups.filmsById.get(id)).filter((film): film is Film => Boolean(film));
@@ -787,17 +809,23 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         {archiveSequence ? <CompletionArchiveSequence directorName={archiveSequence.directorName} filmTitles={archiveSequence.filmTitles} /> : null}
         <RankPopup rank={rankToast} />
 
+        {stageAnnouncement ? (
+          <div className="stage-start-announcement" role="status" aria-live="polite" aria-atomic="true">
+            <span>Continuing run</span><strong>STAGE {stageAnnouncement}</strong><small>Clear every Director · Total score carries forward</small>
+          </div>
+        ) : null}
+
         {dossierFilm && dossierRuntime ? (
           <MovieDossierOverlay
             film={dossierFilm}
             runtime={dossierRuntime}
-            activeDirectors={Array.from({ length: GAME_CONFIG.maximumActiveDirectors }, (_, index) => lookups.directorsById.get(game.activeDirectorIds[index]) ?? null)}
+            activeDirectors={game.directorSlots.map((directorId) => directorId ? lookups.directorsById.get(directorId) ?? null : null)}
             onClose={() => setDossierFilmId(null)}
           />
         ) : null}
 
         {showHelp ? (
-          <GameLoopTutorial onClose={() => setShowHelp(false)} />
+          <GameLoopTutorial onClose={closeHelp} onComplete={() => setTutorialCompleted(true)} startInReference={tutorialCompleted} />
         ) : null}
 
         {game.status === "stage_complete" ? <StageResultsOverlay game={game} onContinue={continueStage} /> : null}

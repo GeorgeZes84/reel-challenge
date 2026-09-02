@@ -66,6 +66,7 @@ export function StageResultsOverlay({ game, onContinue }: { game: GameState; onC
       <button type="button" className="primary-pixel-button" onClick={onContinue}>
         {nextStageAvailable ? `Continue to Stage ${game.stageNumber + 1}` : "Complete the archive"}
       </button>
+      {nextStageAvailable ? <small className="stage-continue-note">Your total score and run-best combo continue into the next Stage.</small> : null}
     </div>
   );
 }

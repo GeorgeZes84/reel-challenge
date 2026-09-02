@@ -5,12 +5,13 @@ A playful, browser-only film-matching game presented inside a responsive, vector
 ## Game loop
 
 - A run begins with two active directors and exactly ten visible film tickets.
+- The opening How to Play is a controlled interactive lesson built from the real ticket and Director components: one correct drag, one deliberate wrong drag and punch, Director completion, then free Movie and Director hint samples. Afterward it becomes a compact replayable reference.
 - Drag a movie ticket onto an active director. Every director has three visible ticket receivers that wake up during a drag; empty future director positions stay inert. A correct match scores points and coins, while a wrong match is rejected, punched, and returned to its previous position without revealing its owner.
 - Every ticket always shows its genre; the interface never labels films by whether their director is currently on the board.
 - Match all three films for a director to move that completed set into the Victory Area and free its slot.
+- Director positions are fixed spatial state. Completing a Director leaves that exact slot empty; other drop targets never slide underneath a fast-moving pointer, and the next arrival fills the first open slot.
 - Completing a set now triggers a film-first archive sequence: the three tickets snap together, receive a physical archive punch with synchronized sound, compress into a stack, travel toward the Victory Area, and only then clear the director from the board.
 - A visible move countdown introduces more directors until all five slots can be occupied.
-- The compact Board Pressure readout keeps the numeric 1–5 capacity state without duplicating the five visible board slots.
 - The oversized Next Director number moves from green through yellow and orange to red at one move; at four occupied slots with one move left, it enters a muted-red “last safe move” pulse.
 - Wrong drops flash red, return the ticket to its prior table position, and physically punch it; every ticket stays visible and playable, with no attempt cap.
 - Ticket color now has one explicit meaning—COLOR = GENRE—with seven consistent genre families; every ticket and every locked director-stack film keeps its release year visible.
@@ -23,6 +24,7 @@ A playful, browser-only film-matching game presented inside a responsive, vector
 - The full library is divided into configurable ten-director stages using a provisional four-tier difficulty curve. Early stages favor recognizable associations; Challenging and Archive directors increasingly enter later, while order remains shuffled inside each stage.
 - Every director still requires exactly three films. Difficulty comes from the staged knowledge curve rather than giving harder directors more sockets or more work under the three-move arrival timer.
 - Each clean table triggers a score-counting Stage Results celebration with stage score, total score, combo, multiplier, director, accuracy, mistake, and move stats. Continuing preserves the high score, coins, and combo.
+- Stage number and Director progress remain visible in the score panel, while each Stage begins with a short continuing-run announcement.
 - If a new director is due while every slot is occupied, the board overflows and the run ends. Clearing the complete local director library produces the archive-complete report.
 
 ## Hints and controls
@@ -33,6 +35,7 @@ A playful, browser-only film-matching game presented inside a responsive, vector
 - Elimination unlocks with at least three active directors; the direct answer unlocks with more than two. Hints cost coins and do not consume a move.
 - Drag tickets around the screen to organize the board; dropping on empty space keeps the new position.
 - Correct matches send one coin pip per earned coin toward the bezel, then pulse the wallet in the Hint Shop; combo bonus coins are called out separately and accumulate into the same wallet.
+- Correct and wrong match feedback no longer blocks the next useful input; the larger Director archive sequence was shortened from 1.9 seconds to about 1.1 seconds.
 - The CRT treatment uses static scanlines and vignette layers rather than a continuously repainting noise animation, keeping idle GPU use low.
 - Use the bezel controls to mute sound, reduce the CRT treatment, or start a fresh shuffled game.
 - The desktop cabinet is constrained to a complete 16:9 view, with a natural-height stacked layout on smaller screens.
@@ -65,6 +68,7 @@ npm run lint
 ## Project shape
 
 - `app/components/DirectorGame.tsx` — interactive board, CRT HUD, dragging, hints, feedback, and progression
+- `app/components/GameLoopTutorial.tsx` — controlled real-object drag lesson, wrong-answer punch, completion, free hint samples, and compact reference
 - `app/components/CompletionArchiveSequence.tsx` — three-ticket snap, punch, stack compression, and Victory Area handoff
 - `app/components/StageResultsOverlay.tsx` — animated stage score transfer, performance stats, and next-stage handoff
 - `app/components/ConstellationCard.tsx` — reusable movie tickets, director slots, hint stickers, and victory chips
