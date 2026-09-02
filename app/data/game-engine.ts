@@ -1,5 +1,11 @@
 import type { Director, Film } from "./directors";
 import {
+  DIRECTOR_DIFFICULTY_TIERS,
+  STAGE_DIFFICULTY_MIXES,
+  directorDifficultyTier,
+  type StageDifficultyMix,
+} from "./director-difficulty.ts";
+import {
   DIRECTOR_HINT_LABELS,
   directorHintProfile,
   type DirectorHintType,
@@ -93,6 +99,7 @@ export type GameConfig = {
   moviesPerDirector: number;
   visibleMovieCount: number;
   stageDirectorCount: number;
+  stageDifficultyMixes: readonly StageDifficultyMix[];
   initialDirectorCountdown: number;
   directorCountdownProgression: number[];
   targetActionableMovieCount: number;
@@ -117,6 +124,7 @@ export const GAME_CONFIG: GameConfig = {
   moviesPerDirector: 3,
   visibleMovieCount: 10,
   stageDirectorCount: 10,
+  stageDifficultyMixes: STAGE_DIFFICULTY_MIXES,
   initialDirectorCountdown: 3,
   directorCountdownProgression: [3],
   // Best-effort composition target for the fixed ten-ticket board. This is a
@@ -182,6 +190,50 @@ export function shuffleWith<T>(items: readonly T[], random: () => number): T[] {
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
   return shuffled;
+}
+
+function tieredDirectorOrder(
+  directors: readonly Director[],
+  random: () => number,
+  config: GameConfig,
+): Director[] {
+  if (config.stageDifficultyMixes.length === 0) return shuffleWith(directors, random);
+
+  const buckets = Object.fromEntries(
+    DIRECTOR_DIFFICULTY_TIERS.map((tier) => [
+      tier,
+      shuffleWith(directors.filter((director) => directorDifficultyTier(director.id) === tier), random),
+    ]),
+  ) as Record<(typeof DIRECTOR_DIFFICULTY_TIERS)[number], Director[]>;
+  const ordered: Director[] = [];
+  let stageIndex = 0;
+
+  while (ordered.length < directors.length) {
+    const stageSize = Math.min(config.stageDirectorCount, directors.length - ordered.length);
+    const mix = config.stageDifficultyMixes[
+      Math.min(stageIndex, config.stageDifficultyMixes.length - 1)
+    ];
+    const stage: Director[] = [];
+
+    for (const tier of DIRECTOR_DIFFICULTY_TIERS) {
+      const requested = Math.min(mix?.[tier] ?? 0, stageSize - stage.length);
+      stage.push(...buckets[tier].splice(0, requested));
+    }
+
+    // Custom pools and future data may not match the default mix exactly.
+    // Fill any shortage without dropping Directors or changing stage size.
+    while (stage.length < stageSize) {
+      const fallbackTier = DIRECTOR_DIFFICULTY_TIERS.find((tier) => buckets[tier].length > 0);
+      if (!fallbackTier) break;
+      const nextDirector = buckets[fallbackTier].shift();
+      if (nextDirector) stage.push(nextDirector);
+    }
+
+    ordered.push(...shuffleWith(stage, random));
+    stageIndex += 1;
+  }
+
+  return ordered;
 }
 
 function filmMap(directorPool: readonly Director[]) {
@@ -321,7 +373,7 @@ function advanceMoveAndDirector(state: GameState, config: GameConfig) {
 export function createInitialGame(directorPool: readonly Director[], seed: string, config: GameConfig = GAME_CONFIG): GameState {
   const random = randomFromSeed(seed);
   const eligible = directorPool.filter((director) => director.films.length >= config.moviesPerDirector);
-  const selected = shuffleWith(eligible, random);
+  const selected = tieredDirectorOrder(eligible, random, config);
   const directorFilmIds: Record<string, string[]> = {};
   const movies: Record<string, MovieRuntime> = {};
 

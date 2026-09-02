@@ -20,7 +20,8 @@ A playful, browser-only film-matching game presented inside a responsive, vector
 - Cross One Out is reusable per ticket while valid candidates remain, never removes the correct director, and follows a configurable 2 → 3 → 5 coin curve.
 - Emergency Answer is a separate, high-cost panic option that names the correct director; its movie match score is reduced by a configurable multiplier while completion bonuses remain intact.
 - Four consecutive correct matches heat the score to ×2 and add one bonus coin per match; six ignite ×3 and add two. A wrong answer resets the live combo to ×1 while preserving run-best stats.
-- The shuffled full director library is divided into configurable ten-director stages. Once a stage’s last director has arrived, no future-stage films can enter; play continues in cleanup mode until every remaining stage ticket is resolved and the table is empty.
+- The full library is divided into configurable ten-director stages using a provisional four-tier difficulty curve. Early stages favor recognizable associations; Challenging and Archive directors increasingly enter later, while order remains shuffled inside each stage.
+- Every director still requires exactly three films. Difficulty comes from the staged knowledge curve rather than giving harder directors more sockets or more work under the three-move arrival timer.
 - Each clean table triggers a score-counting Stage Results celebration with stage score, total score, combo, multiplier, director, accuracy, mistake, and move stats. Continuing preserves the high score, coins, and combo.
 - If a new director is due while every slot is occupied, the board overflows and the run ends. Clearing the complete local director library produces the archive-complete report.
 

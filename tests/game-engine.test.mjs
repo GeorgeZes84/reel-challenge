@@ -18,6 +18,12 @@ import {
   startNextStage,
 } from "../app/data/game-engine.ts";
 import { directors } from "../app/data/directors.ts";
+import {
+  DIRECTOR_DIFFICULTY_TIER_BY_ID,
+  DIRECTOR_DIFFICULTY_TIERS,
+  STAGE_DIFFICULTY_MIXES,
+  directorDifficultyTier,
+} from "../app/data/director-difficulty.ts";
 import { DIRECTOR_HINT_PROFILES, DIRECTOR_HINT_TYPES } from "../app/data/director-hints.ts";
 import { GENRE_COLORS, genreColor, genreFamily } from "../app/data/genre-colors.ts";
 
@@ -102,6 +108,40 @@ test("the real 60-director pool is unique and supports randomized runs", () => {
     runSignatures.add(state.runDirectorIds.join("|"));
   }
   assert.ok(runSignatures.size > 190, "real runs should not collapse into a fixed director order");
+});
+
+test("the provisional tier list covers the library and creates a rising stage curve", () => {
+  assert.equal(Object.keys(DIRECTOR_DIFFICULTY_TIER_BY_ID).length, directors.length);
+  assert.deepEqual(
+    Object.fromEntries(DIRECTOR_DIFFICULTY_TIERS.map((tier) => [
+      tier,
+      directors.filter((director) => directorDifficultyTier(director.id) === tier).length,
+    ])),
+    { accessible: 16, familiar: 19, challenging: 17, archive: 8 },
+  );
+
+  for (const director of directors) {
+    assert.ok(DIRECTOR_DIFFICULTY_TIER_BY_ID[director.id], `${director.name} needs a difficulty tier`);
+  }
+
+  for (let seedIndex = 0; seedIndex < 40; seedIndex += 1) {
+    const state = createInitialGame(directors, `tier-curve-${seedIndex}`);
+    STAGE_DIFFICULTY_MIXES.forEach((expectedMix, stageIndex) => {
+      const stageIds = state.runDirectorIds.slice(
+        stageIndex * GAME_CONFIG.stageDirectorCount,
+        (stageIndex + 1) * GAME_CONFIG.stageDirectorCount,
+      );
+      const actualMix = Object.fromEntries(DIRECTOR_DIFFICULTY_TIERS.map((tier) => [
+        tier,
+        stageIds.filter((directorId) => directorDifficultyTier(directorId) === tier).length,
+      ]));
+      assert.deepEqual(actualMix, expectedMix, `stage ${stageIndex + 1} should keep its configured tier mix`);
+    });
+  }
+
+  assert.equal(STAGE_DIFFICULTY_MIXES[0].archive, 0);
+  assert.ok(STAGE_DIFFICULTY_MIXES.at(-1).archive > STAGE_DIFFICULTY_MIXES[0].archive);
+  assert.equal(GAME_CONFIG.moviesPerDirector, 3, "tiers must not change the completion workload");
 });
 
 test("every director has six authored clues that do not disclose the movie set", () => {

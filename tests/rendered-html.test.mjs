@@ -76,7 +76,7 @@ test("server-renders The Director Game's complete opening state", async () => {
 });
 
 test("keeps the CRT game local, data-driven and answer-safe", async () => {
-  const [page, shell, cards, tutorial, hud, coinFx, completionArchive, rankPopup, stageResults, dossier, engine, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
+  const [page, shell, cards, tutorial, hud, coinFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
     readFile(new URL("../app/components/DirectorGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CrtTelevision.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ConstellationCard.tsx", import.meta.url), "utf8"),
@@ -88,6 +88,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
     readFile(new URL("../app/components/StageResultsOverlay.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/MovieDossierOverlay.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/data/game-engine.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/director-difficulty.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/data/director-hints.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/data/genre-colors.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -267,6 +268,12 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(engine, /maximumActiveDirectors:\s*5/);
   assert.match(engine, /initialDirectorCountdown:\s*3/);
   assert.match(engine, /directorCountdownProgression:\s*\[3\]/);
+  assert.match(engine, /stageDifficultyMixes:\s*STAGE_DIFFICULTY_MIXES/);
+  assert.match(engine, /tieredDirectorOrder\(eligible, random, config\)/);
+  assert.match(difficulty, /DIRECTOR_DIFFICULTY_TIERS/);
+  assert.match(difficulty, /This is a playtest hypothesis/);
+  assert.match(difficulty, /accessible:\s*6, familiar:\s*3, challenging:\s*1, archive:\s*0/);
+  assert.match(difficulty, /accessible:\s*0, familiar:\s*2, challenging:\s*4, archive:\s*4/);
   assert.match(engine, /releaseDate:\s*2/);
   assert.match(engine, /stageDirectorCount:\s*10/);
   assert.doesNotMatch(engine, /targetDirectorCompletions/);
