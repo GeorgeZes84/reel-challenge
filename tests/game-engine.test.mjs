@@ -177,7 +177,7 @@ test("starts with two directors and a fixed ten-card field", () => {
   assert.equal(state.stageDirectorIds.length, GAME_CONFIG.stageDirectorCount);
   assert.deepEqual(state.stageDirectorIds, state.runDirectorIds.slice(0, GAME_CONFIG.stageDirectorCount));
   assert.equal(actionableMovieCount(state), 6);
-  assert.equal(state.nextDirectorIn, 5);
+  assert.equal(state.nextDirectorIn, 3);
 });
 
 test("the fixed board uses a configurable best-effort actionable movie target", () => {

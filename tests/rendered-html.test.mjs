@@ -44,10 +44,10 @@ test("server-renders The Director Game's complete opening state", async () => {
   assert.doesNotMatch(html, /Hold for a future slot/i);
   assert.match(html, /class="director-board-screen pressure-2/i);
   assert.doesNotMatch(html, /Director capacity|capacity-panel|Board pressure/i);
-  assert.match(html, /class="hud-panel next-director-panel arrival-safe"/i);
+  assert.match(html, /class="hud-panel next-director-panel arrival-warm"/i);
   assert.match(html, /class="next-director-label">Next director in</i);
   assert.match(html, /class="next-director-display"/i);
-  assert.match(html, /class="next-director-display"[\s\S]*?<strong>5<\/strong>[\s\S]*?<b>Moves<\/b>/i);
+  assert.match(html, /class="next-director-display"[\s\S]*?<strong>3<\/strong>[\s\S]*?<b>Moves<\/b>/i);
   assert.match(html, /class="hud-panel score-panel multiplier-1"/i);
   assert.match(html, /×(?:<!-- -->)?1/i);
   assert.match(html, /Stage (?:<!-- -->)?1(?:<!-- -->)? · Total score/i);
@@ -265,7 +265,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.doesNotMatch(engine, /waiting_to_reappear|wrongMovieReappearDelay/);
   assert.match(engine, /visibleMovieCount:\s*10/);
   assert.match(engine, /maximumActiveDirectors:\s*5/);
-  assert.match(engine, /initialDirectorCountdown:\s*5/);
+  assert.match(engine, /initialDirectorCountdown:\s*3/);
+  assert.match(engine, /directorCountdownProgression:\s*\[3\]/);
   assert.match(engine, /releaseDate:\s*2/);
   assert.match(engine, /stageDirectorCount:\s*10/);
   assert.doesNotMatch(engine, /targetDirectorCompletions/);

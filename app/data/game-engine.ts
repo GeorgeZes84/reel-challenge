@@ -117,8 +117,8 @@ export const GAME_CONFIG: GameConfig = {
   moviesPerDirector: 3,
   visibleMovieCount: 10,
   stageDirectorCount: 10,
-  initialDirectorCountdown: 5,
-  directorCountdownProgression: [5, 5, 5, 5, 4, 4, 3],
+  initialDirectorCountdown: 3,
+  directorCountdownProgression: [3],
   // Best-effort composition target for the fixed ten-ticket board. This is a
   // playtest tuning value, not a guarantee: the remaining unresolved movies
   // for active directors can legitimately fall below it between arrivals.
