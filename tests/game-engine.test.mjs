@@ -177,6 +177,7 @@ test("starts with two directors and a fixed ten-card field", () => {
   assert.equal(state.stageDirectorIds.length, GAME_CONFIG.stageDirectorCount);
   assert.deepEqual(state.stageDirectorIds, state.runDirectorIds.slice(0, GAME_CONFIG.stageDirectorCount));
   assert.equal(actionableMovieCount(state), 6);
+  assert.equal(state.nextDirectorIn, 5);
 });
 
 test("the fixed board uses a configurable best-effort actionable movie target", () => {
@@ -296,15 +297,18 @@ test("hints are gated, paid, stack on a ticket, and survive wrong punches", () =
   assert.equal(purchaseHint(state, filmId, "directAnswer", pool, config).reason, "not_available");
 
   state = purchaseHint(state, filmId, "movieIdentification", pool, config).state;
+  state = purchaseHint(state, filmId, "releaseDate", pool, config).state;
   state = purchaseHint(state, filmId, "verbalDirectorClue", pool, config).state;
   assert.ok(state.movies[filmId].hints.movieIdentification);
+  assert.equal(state.movies[filmId].hints.releaseDate.content, `Released in ${pool.flatMap((director) => director.films).find((film) => film.id === filmId).year}.`);
   assert.ok(state.movies[filmId].hints.verbalDirectorClue);
-  assert.equal(state.coins, 100 - config.hintCosts.movieIdentification - config.hintCosts.verbalDirectorClue);
+  assert.equal(state.coins, 100 - config.hintCosts.movieIdentification - config.hintCosts.releaseDate - config.hintCosts.verbalDirectorClue);
 
   const owner = ownerOf(state, filmId);
   const wrongTarget = state.activeDirectorIds.find((id) => id !== owner);
   state = attemptAssignment(state, filmId, wrongTarget, config).state;
   assert.ok(state.movies[filmId].hints.movieIdentification);
+  assert.ok(state.movies[filmId].hints.releaseDate);
   assert.ok(state.movies[filmId].hints.verbalDirectorClue);
 
   const nextFilm = actionableFilm(state);
@@ -389,6 +393,7 @@ test("Emergency Answer reveals the correct director and applies only its configu
   assert.equal(purchase.sticker.label, "EMERGENCY ANSWER");
   assert.equal(purchase.sticker.content, `Correct director: ${pool.find((director) => director.id === owner).name}.`);
   assert.equal(purchase.state.coins, 100 - config.hintCosts.directAnswer);
+  assert.equal(purchase.state.moveCount, state.moveCount, "buying Emergency Answer must not spend a move");
 
   const outcome = attemptAssignment(purchase.state, filmId, owner, config);
   const reducedMatchScore = Math.round(config.correctMatchScore * config.emergencyAnswerScoreMultiplier);

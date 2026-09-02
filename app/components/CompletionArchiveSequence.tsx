@@ -44,7 +44,7 @@ export function CompletionArchiveSequence({ directorName, filmTitles }: Completi
         <em className="archive-punch-mark">ARCHIVED</em>
       </div>
 
-      <small>To Victory Area →</small>
+      <small>Filed · Moving on →</small>
     </div>
   );
 }

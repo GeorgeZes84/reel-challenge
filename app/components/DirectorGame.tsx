@@ -37,7 +37,7 @@ import { GameHud } from "./GameHud";
 import { GameLoopTutorial } from "./GameLoopTutorial";
 import { RankPopup } from "./RankPopup";
 import { StageResultsOverlay } from "./StageResultsOverlay";
-import { VisualHintOverlay, type VisualHintType } from "./VisualHintOverlay";
+import { MovieDossierOverlay } from "./MovieDossierOverlay";
 
 const TICKET_LAYOUT: Position[] = [
   { x: 3, y: 7, rotation: -3.5 },
@@ -94,7 +94,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [hintContextDirectorId, setHintContextDirectorId] = useState<string | null>(null);
   const [lastHintByFilm, setLastHintByFilm] = useState<Record<string, HintType>>({});
   const [autoOpenHint, setAutoOpenHint] = useState<{ filmId: string; type: HintType } | null>(null);
-  const [visualHintKey, setVisualHintKey] = useState<{ filmId: string; type: VisualHintType } | null>(null);
+  const [dossierFilmId, setDossierFilmId] = useState<string | null>(null);
   const [openDirectorHintKey, setOpenDirectorHintKey] = useState<{ directorId: string; type: DirectorHintType } | null>(null);
   const [hintRescueVisible, setHintRescueVisible] = useState(false);
   const [rejectedFilmId, setRejectedFilmId] = useState<string | null>(null);
@@ -105,7 +105,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [archiveSequence, setArchiveSequence] = useState<ArchiveSequence>(null);
   const [scoreBurst, setScoreBurst] = useState<string | null>(null);
   const [coinRewards, setCoinRewards] = useState<CoinRewardEvent[]>([]);
-  const [trailerFilmId, setTrailerFilmId] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(true);
   const [actionLocked, setActionLocked] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -143,16 +142,16 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   }, []);
 
   useEffect(() => {
-    if (!trailerFilmId && !showHelp) return;
+    if (!dossierFilmId && !showHelp) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setTrailerFilmId(null);
+        setDossierFilmId(null);
         setShowHelp(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [showHelp, trailerFilmId]);
+  }, [showHelp, dossierFilmId]);
 
   const playSound = (cue: "pick" | "correct" | "wrong" | "hint" | "punch" | "complete" | "spawn" | "coin") => {
     if (!soundEnabled || typeof window === "undefined") return;
@@ -190,9 +189,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const openDirectorHint: DirectorHintReveal | null = openDirectorHintKey
     ? game.directorHints[openDirectorHintKey.directorId]?.[openDirectorHintKey.type] ?? null
     : null;
-  const visualHintFilm = visualHintKey ? lookups.filmsById.get(visualHintKey.filmId) ?? null : null;
-  const visualHintSticker = visualHintKey ? game.movies[visualHintKey.filmId]?.hints[visualHintKey.type] ?? null : null;
-  const trailerFilm = trailerFilmId ? lookups.filmsById.get(trailerFilmId) ?? null : null;
+  const dossierFilm = dossierFilmId ? lookups.filmsById.get(dossierFilmId) ?? null : null;
+  const dossierRuntime = dossierFilmId ? game.movies[dossierFilmId] ?? null : null;
   const isCleanup = game.stagePhase === "cleanup";
 
   const registerDirectorRef = (directorId: string, element: HTMLDivElement | null) => {
@@ -272,7 +270,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     if (outcome.kind === "correct") reconcileTicketLayout(outcome);
     setSelectedFilmId(null);
     if (outcome.kind === "correct") setHintContextFilmId((current) => current === outcome.filmId ? null : current);
-    if (outcome.kind === "correct") setVisualHintKey((current) => current?.filmId === outcome.filmId ? null : current);
+    if (outcome.kind === "correct") setDossierFilmId((current) => current === outcome.filmId ? null : current);
     if (outcome.completedDirectorId) {
       setHintContextDirectorId((current) => current === outcome.completedDirectorId ? null : current);
       setOpenDirectorHintKey((current) => current?.directorId === outcome.completedDirectorId ? null : current);
@@ -493,24 +491,24 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     wrongStreakRef.current = 0;
     setHintRescueVisible(false);
     setLastHintByFilm((current) => ({ ...current, [targetFilmId]: type }));
-    if (type === "movieIdentification" || type === "visualLanguage") {
-      setAutoOpenHint(null);
-      setVisualHintKey({ filmId: targetFilmId, type });
-      setHudMessage(`${result.sticker?.label ?? "Visual hint"} inspection opened. Close it when you are ready.`);
-    } else {
-      setAutoOpenHint({ filmId: targetFilmId, type });
-      schedule(() => {
-        setAutoOpenHint((current) => current?.filmId === targetFilmId && current.type === type ? null : current);
-      }, 4200);
-      setHudMessage(`${result.sticker?.label ?? "Hint"} sticker attached. Hover or focus it on the ticket.`);
-    }
+    setAutoOpenHint({ filmId: targetFilmId, type });
+    setSelectedFilmId(targetFilmId);
+    schedule(() => {
+      setAutoOpenHint((current) => current?.filmId === targetFilmId && current.type === type ? null : current);
+    }, 1200);
+    setDossierFilmId(targetFilmId);
+    setHudMessage(`${result.sticker?.label ?? "Hint"} filed. The movie evidence file is open.`);
     playSound("hint");
   };
 
-  const openVisualHint = (filmId: string, type: VisualHintType) => {
-    if (!game.movies[filmId]?.hints[type]) return;
-    setVisualHintKey({ filmId, type });
-    setHudMessage(`${lookups.filmsById.get(filmId)?.title ?? "Movie"} · ${type === "movieIdentification" ? "Frame Check" : "Visual DNA"} inspection.`);
+  const openDossier = (filmId: string) => {
+    if (!game.movies[filmId]) return;
+    setDossierFilmId(filmId);
+    if (game.visibleMovieIds.includes(filmId)) setSelectedFilmId(filmId);
+    setHintContextFilmId(filmId);
+    setHintContextDirectorId(null);
+    setOpenDirectorHintKey(null);
+    setHudMessage(`${lookups.filmsById.get(filmId)?.title ?? "Movie"} evidence file opened.`);
     playSound("hint");
   };
 
@@ -567,7 +565,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setHintContextDirectorId(null);
     setLastHintByFilm({});
     setAutoOpenHint(null);
-    setVisualHintKey(null);
+    setDossierFilmId(null);
     setOpenDirectorHintKey(null);
     setHintRescueVisible(false);
     setRejectedFilmId(null);
@@ -578,7 +576,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setArchiveSequence(null);
     setScoreBurst(null);
     setCoinRewards([]);
-    setTrailerFilmId(null);
     setShowHelp(false);
     setActionLocked(false);
     wrongStreakRef.current = 0;
@@ -600,7 +597,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setHintContextFilmId(null);
     setHintContextDirectorId(null);
     setAutoOpenHint(null);
-    setVisualHintKey(null);
+    setDossierFilmId(null);
     setOpenDirectorHintKey(null);
     setHintRescueVisible(false);
     setRejectedFilmId(null);
@@ -611,7 +608,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setArchiveSequence(null);
     setScoreBurst(null);
     setCoinRewards([]);
-    setTrailerFilmId(null);
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = next.moveCount;
@@ -628,7 +624,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       openDirectorHint={openDirectorHint}
       hintRescueVisible={hintRescueVisible}
       directorsById={lookups.directorsById}
-      filmsById={lookups.filmsById}
       message={hudMessage}
       coinRewards={coinRewards}
       coinWalletRef={coinWalletRef}
@@ -656,7 +651,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       status={game.status === "playing" ? hudMessage : game.status === "stage_complete" ? `Stage ${game.stageNumber} complete · results ready` : game.status === "won" ? "Archive complete · final results ready" : "Signal overload · final results ready"}
     >
       <section
-        className={`director-board-screen ${draggingFilmId ? "is-dragging" : ""} ${isCleanup ? "is-cleanup" : ""}`}
+        className={`director-board-screen pressure-${Math.min(GAME_CONFIG.maximumActiveDirectors, Math.max(1, game.activeDirectorIds.length))} ${draggingFilmId ? "is-dragging" : ""} ${isCleanup ? "is-cleanup" : ""}`}
         ref={boardRef}
         onPointerMove={moveDragging}
         onPointerUp={stopDragging}
@@ -708,8 +703,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
               onPointerDown={startDragging}
               onSelect={handleSelect}
               onHintContext={handleMovieHintContext}
-              onOpenVisualHint={openVisualHint}
-              onTrailer={setTrailerFilmId}
+              onOpenDossier={openDossier}
               key={filmId}
             />
           );
@@ -739,7 +733,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
                 isSelected={hintContextDirectorId === directorId}
                 registerRef={registerDirectorRef}
                 onSelect={handleDirectorHintContext}
-                onTrailer={setTrailerFilmId}
+                onOpenDossier={openDossier}
                 key={directorId ?? `empty-${slotIndex}`}
               />
             );
@@ -751,18 +745,13 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         {archiveSequence ? <CompletionArchiveSequence directorName={archiveSequence.directorName} filmTitles={archiveSequence.filmTitles} /> : null}
         <RankPopup rank={rankToast} />
 
-        {visualHintFilm && visualHintSticker && visualHintKey ? (
-          <VisualHintOverlay film={visualHintFilm} sticker={visualHintSticker} type={visualHintKey.type} onClose={() => setVisualHintKey(null)} />
-        ) : null}
-
-        {trailerFilm ? (
-          <div className="screen-overlay trailer-overlay" role="dialog" aria-modal="true" aria-label={`${trailerFilm.title} trailer`}>
-            <button type="button" className="overlay-close" onClick={() => setTrailerFilmId(null)} aria-label="Close trailer">×</button>
-            <div className="trailer-ticket"><span>{trailerFilm.year}</span><strong>{trailerFilm.title}</strong><small>{trailerFilm.genre}</small></div>
-            {trailerFilm.youtubeId ? (
-              <iframe src={`https://www.youtube-nocookie.com/embed/${trailerFilm.youtubeId}?rel=0`} title={`${trailerFilm.title} official trailer`} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-            ) : <div className="trailer-fallback"><span aria-hidden="true">▥</span><strong>Trailer signal unavailable</strong><small>This ticket still plays in the main game.</small></div>}
-          </div>
+        {dossierFilm && dossierRuntime ? (
+          <MovieDossierOverlay
+            film={dossierFilm}
+            runtime={dossierRuntime}
+            activeDirectors={Array.from({ length: GAME_CONFIG.maximumActiveDirectors }, (_, index) => lookups.directorsById.get(game.activeDirectorIds[index]) ?? null)}
+            onClose={() => setDossierFilmId(null)}
+          />
         ) : null}
 
         {showHelp ? (

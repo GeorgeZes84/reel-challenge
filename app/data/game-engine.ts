@@ -7,7 +7,7 @@ import {
 
 export const HINT_TYPES = [
   "movieIdentification",
-  "visualLanguage",
+  "releaseDate",
   "verbalDirectorClue",
   "elimination",
   "directAnswer",
@@ -117,8 +117,8 @@ export const GAME_CONFIG: GameConfig = {
   moviesPerDirector: 3,
   visibleMovieCount: 10,
   stageDirectorCount: 10,
-  initialDirectorCountdown: 6,
-  directorCountdownProgression: [6, 6, 5, 5, 4, 4, 3],
+  initialDirectorCountdown: 5,
+  directorCountdownProgression: [5, 5, 5, 5, 4, 4, 3],
   // Best-effort composition target for the fixed ten-ticket board. This is a
   // playtest tuning value, not a guarantee: the remaining unresolved movies
   // for active directors can legitimately fall below it between arrivals.
@@ -135,7 +135,7 @@ export const GAME_CONFIG: GameConfig = {
   emergencyAnswerScoreMultiplier: 0.5,
   hintCosts: {
     movieIdentification: 1,
-    visualLanguage: 2,
+    releaseDate: 2,
     verbalDirectorClue: 4,
     elimination: 2,
     directAnswer: 10,
@@ -602,7 +602,7 @@ export type DirectorHintPurchaseResult = {
 
 const hintLabels: Record<HintType, string> = {
   movieIdentification: "Frame check",
-  visualLanguage: "Visual language",
+  releaseDate: "Release date",
   verbalDirectorClue: "Director note",
   elimination: "Cross one out",
   directAnswer: "EMERGENCY ANSWER",
@@ -672,9 +672,9 @@ export function purchaseHint(
   let eliminatedDirectorIds: string[] | undefined;
   let purchaseCount = 1;
   if (type === "movieIdentification") {
-    content = `${film.title} · ${film.year} · ${film.genre}. Inspect the frame, not the credits.`;
-  } else if (type === "visualLanguage") {
-    content = `Study the framing, palette and production design across this ${film.genre.toLowerCase()} image set.`;
+    content = `Inspect one production frame from this ${film.genre.toLowerCase()} movie. No credits attached.`;
+  } else if (type === "releaseDate") {
+    content = `Released in ${film.year}.`;
   } else if (type === "verbalDirectorClue") {
     const otherFilm = owner.films.find((candidate) => candidate.id !== filmId) ?? owner.films[0];
     content = `This director also made “${otherFilm.title}.”`;

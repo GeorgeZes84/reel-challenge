@@ -1,44 +1,33 @@
 "use client";
 
-import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Director, Film } from "../data/directors";
 import { genreColor, genreFamily } from "../data/genre-colors";
 import { HINT_TYPES, type HintSticker, type HintType, type MovieRuntime } from "../data/game-engine";
-import type { VisualHintType } from "./VisualHintOverlay";
 
 export type Position = { x: number; y: number; rotation: number };
 
 const stickerGlyphs: Record<HintType, string> = {
   movieIdentification: "▣",
-  visualLanguage: "◈",
+  releaseDate: "#",
   verbalDirectorClue: "≡",
   elimination: "×",
   directAnswer: "★",
 };
 
-function HintStickerButton({ sticker, isLatest, isAutoOpen, onOpenVisual }: { sticker: HintSticker; isLatest: boolean; isAutoOpen: boolean; onOpenVisual: (type: VisualHintType) => void }) {
-  const isVisual = sticker.type === "movieIdentification" || sticker.type === "visualLanguage";
-  const [isExpanded, setIsExpanded] = useState(false);
+function HintStickerButton({ sticker, isLatest, isAutoOpen, onOpenDossier }: { sticker: HintSticker; isLatest: boolean; isAutoOpen: boolean; onOpenDossier: () => void }) {
   return (
     <button
-      className={`hint-sticker hint-${sticker.type}${isVisual ? " is-visual" : ""}${isLatest ? " is-latest" : ""}${isAutoOpen ? " is-new is-auto-open" : ""}${isExpanded ? " is-expanded" : ""}`}
+      className={`hint-sticker hint-${sticker.type}${isLatest ? " is-latest" : ""}${isAutoOpen ? " is-new" : ""}`}
       type="button"
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
-        if (isVisual) onOpenVisual(sticker.type);
-        else setIsExpanded((current) => !current);
+        onOpenDossier();
       }}
-      onMouseLeave={() => setIsExpanded(false)}
-      onBlur={() => setIsExpanded(false)}
-      aria-expanded={isVisual ? undefined : isExpanded || isAutoOpen}
-      aria-label={isVisual ? `Open full-screen ${sticker.label}` : `${sticker.label}: ${sticker.content}`}
+      aria-label={`Open movie file. ${sticker.label} is owned.`}
     >
       <span aria-hidden="true">{stickerGlyphs[sticker.type]}</span>
-      {!isVisual ? <span className="hint-sticker-popover">
-        <strong>{sticker.label}</strong>
-        <small>{sticker.content}</small>
-      </span> : null}
     </button>
   );
 }
@@ -56,8 +45,7 @@ type MovieTicketProps = {
   onPointerDown: (event: ReactPointerEvent<HTMLElement>, filmId: string) => void;
   onSelect: (filmId: string) => void;
   onHintContext: (filmId: string) => void;
-  onOpenVisualHint: (filmId: string, type: VisualHintType) => void;
-  onTrailer: (filmId: string) => void;
+  onOpenDossier: (filmId: string) => void;
 };
 
 const PUNCH_HOLE_POSITIONS = [
@@ -69,7 +57,7 @@ const PUNCH_HOLE_POSITIONS = [
   { x: 6, y: 54 },
 ] as const;
 
-export function MovieTicket({ film, runtime, position, isDragging, isRejected, isSpawning, isSelected, lastHintType, autoOpenHintType, onPointerDown, onSelect, onHintContext, onOpenVisualHint, onTrailer }: MovieTicketProps) {
+export function MovieTicket({ film, runtime, position, isDragging, isRejected, isSpawning, isSelected, lastHintType, autoOpenHintType, onPointerDown, onSelect, onHintContext, onOpenDossier }: MovieTicketProps) {
   const stickers = HINT_TYPES.map((type) => runtime.hints[type]).filter((sticker): sticker is HintSticker => Boolean(sticker));
   const displayGenre = genreFamily(film.genre);
   const previewPlacement = `${position.y < 32 ? "preview-below" : ""} ${position.x < 18 ? "preview-right" : position.x > 69 ? "preview-left" : ""}`;
@@ -100,18 +88,18 @@ export function MovieTicket({ film, runtime, position, isDragging, isRejected, i
         type="button"
         aria-pressed={isSelected}
         onClick={() => onSelect(film.id)}
-        aria-label={`Movie ticket: ${film.title}, ${film.year}. ${runtime.punchCount} ${runtime.punchCount === 1 ? "wrong-answer punch" : "wrong-answer punches"}. Select it, then choose a director; or drag it onto a director.`}
+        aria-label={`Movie ticket: ${film.title}${runtime.hints.releaseDate ? `, released ${film.year}` : ", release date unknown"}. ${runtime.punchCount} ${runtime.punchCount === 1 ? "wrong-answer punch" : "wrong-answer punches"}. Select it, then choose a director; or drag it onto a director.`}
       >
         <span className="ticket-perforation" aria-hidden="true" />
         <span className="ticket-copy">
           <strong>{film.title}</strong>
-          <small className="ticket-meta"><span>{displayGenre}</span><i aria-hidden="true">·</i><b>{film.year}</b></small>
+          <small className="ticket-meta"><span>{displayGenre}</span>{runtime.hints.releaseDate ? <><i aria-hidden="true">·</i><b>{film.year}</b></> : <b className="ticket-date-locked">DATE ?</b>}</small>
         </span>
       </button>
-      <button className="ticket-trailer" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onTrailer(film.id); }} aria-label={`Watch ${film.title} trailer`}>↗</button>
+      <button className="ticket-dossier" type="button" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); onOpenDossier(film.id); }} aria-label={`Open the movie file for ${film.title}`}><span aria-hidden="true">⌕</span></button>
       {stickers.length > 0 ? (
         <span className="ticket-stickers">
-          {stickers.map((sticker) => <HintStickerButton sticker={sticker} isLatest={sticker.type === lastHintType} isAutoOpen={sticker.type === autoOpenHintType} onOpenVisual={(type) => onOpenVisualHint(film.id, type)} key={`${sticker.type}-${sticker.purchaseCount ?? 1}`} />)}
+          {stickers.map((sticker) => <HintStickerButton sticker={sticker} isLatest={sticker.type === lastHintType} isAutoOpen={sticker.type === autoOpenHintType} onOpenDossier={() => onOpenDossier(film.id)} key={`${sticker.type}-${sticker.purchaseCount ?? 1}`} />)}
         </span>
       ) : null}
       {visiblePunches.length > 0 ? (
@@ -139,10 +127,10 @@ type DirectorSlotProps = {
   isSelected: boolean;
   registerRef: (directorId: string, element: HTMLDivElement | null) => void;
   onSelect: (directorId: string) => void;
-  onTrailer: (filmId: string) => void;
+  onOpenDossier: (filmId: string) => void;
 };
 
-export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isReceiving, dropState, isSpawning, isArchiving, isEliminated, isSelected, registerRef, onSelect, onTrailer }: DirectorSlotProps) {
+export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isReceiving, dropState, isSpawning, isArchiving, isEliminated, isSelected, registerRef, onSelect, onOpenDossier }: DirectorSlotProps) {
   if (!director) {
     return (
       <div
@@ -200,7 +188,7 @@ export function DirectorSlot({ slotIndex, director, films, expectedFilmIds, isRe
       {films.length > 0 ? (
         <span className="director-mini-stack">
           {films.map((film) => (
-            <button type="button" onClick={() => onTrailer(film.id)} aria-label={`Watch ${film.title}, released ${film.year}, trailer`} key={film.id}>
+            <button type="button" onClick={() => onOpenDossier(film.id)} aria-label={`Open the movie file for ${film.title}`} key={film.id}>
               <span>{film.title}</span><small>{film.year}</small>
             </button>
           ))}

@@ -30,7 +30,7 @@ test("server-renders The Director Game's complete opening state", async () => {
   assert.equal((html.match(/data-socket-count="3"/g) ?? []).length, 2);
   assert.equal((html.match(/class="director-socket\b/g) ?? []).length, 6);
   assert.equal((html.match(/class="game-loop-step\b/g) ?? []).length, 3);
-  assert.match(html, /class="screen-instruction match-route"[^>]*aria-label="Drag a movie ticket to a director"/i);
+  assert.match(html, /class="screen-instruction match-route [^"]*"[^>]*aria-label="Drag a movie ticket to a director"/i);
   assert.match(html, /MOVIE TICKET[\s\S]*?DIRECTOR/i);
   assert.match(html, /MATCH 3 FILMS/i);
   assert.match(html, /Complete a director’s set/i);
@@ -40,35 +40,33 @@ test("server-renders The Director Game's complete opening state", async () => {
   assert.match(html, /Incoming director \+ 5 full slots = Game Over/i);
   assert.match(html, /Start sorting/i);
   assert.doesNotMatch(html, /Hold for a future slot/i);
-  assert.match(html, /Director capacity/i);
-  assert.match(html, /class="hud-panel capacity-panel pressure-normal"/i);
-  assert.match(html, /class="capacity-state">normal</i);
-  assert.match(html, /aria-label="Director capacity 2 of 5\. Pressure normal\."/i);
-  assert.doesNotMatch(html, /class="capacity-leds"/i);
+  assert.match(html, /class="director-board-screen pressure-2/i);
+  assert.doesNotMatch(html, /Director capacity|capacity-panel|Board pressure/i);
   assert.match(html, /class="hud-panel next-director-panel arrival-safe"/i);
   assert.match(html, /class="next-director-label">Next director in</i);
   assert.match(html, /class="next-director-display"/i);
+  assert.match(html, /class="next-director-display"[\s\S]*?<strong>5<\/strong>[\s\S]*?<b>Moves<\/b>/i);
   assert.match(html, /class="hud-panel score-panel multiplier-1"/i);
   assert.match(html, /×(?:<!-- -->)?1/i);
   assert.match(html, /Stage (?:<!-- -->)?1(?:<!-- -->)? · Total score/i);
-  assert.match(html, /Victory area/i);
+  assert.doesNotMatch(html, /Victory area|victory-panel|Stage 1 archive/i);
   assert.match(html, /Hint shop/i);
   assert.match(html, /Hints for:/i);
   assert.match(html, /Select a movie or director/i);
   assert.match(html, /Frame check/i);
+  assert.match(html, /Release date/i);
+  assert.equal((html.match(/DATE \?/g) ?? []).length, 10);
+  assert.equal((html.match(/class="ticket-dossier"/g) ?? []).length, 10);
   assert.equal((html.match(/aria-label="Open director hints for /g) ?? []).length, 2);
   assert.match(html, /Open file \+/i);
   const scoreIndex = html.indexOf("score-panel");
-  const capacityIndex = html.indexOf("capacity-panel");
   const nextDirectorIndex = html.indexOf("next-director-panel");
   const hintIndex = html.indexOf("hint-panel");
-  const victoryIndex = html.indexOf("victory-panel");
-  assert.ok(scoreIndex >= 0 && scoreIndex < capacityIndex);
-  assert.ok(capacityIndex < nextDirectorIndex && nextDirectorIndex < hintIndex && hintIndex < victoryIndex);
-  assert.doesNotMatch(html.slice(scoreIndex, capacityIndex), /coin-readout/);
-  assert.match(html.slice(hintIndex, victoryIndex), /coin-readout/);
-  assert.match(html.slice(hintIndex, victoryIndex), /4 coins/);
-  assert.match(html.slice(hintIndex, victoryIndex), /aria-live="polite"[^>]*aria-atomic="true"/);
+  assert.ok(scoreIndex >= 0 && scoreIndex < nextDirectorIndex && nextDirectorIndex < hintIndex);
+  assert.doesNotMatch(html.slice(scoreIndex, nextDirectorIndex), /coin-readout/);
+  assert.match(html.slice(hintIndex), /coin-readout/);
+  assert.match(html.slice(hintIndex), /4 coins/);
+  assert.match(html.slice(hintIndex), /aria-live="polite"[^>]*aria-atomic="true"/);
   assert.match(html, /CRT FX/i);
   assert.match(html, /How to play/i);
   assert.doesNotMatch(html, /Cine-meter|score-meter|booster pack|Start round/i);
@@ -76,7 +74,7 @@ test("server-renders The Director Game's complete opening state", async () => {
 });
 
 test("keeps the CRT game local, data-driven and answer-safe", async () => {
-  const [page, shell, cards, tutorial, hud, coinFx, completionArchive, rankPopup, stageResults, visualHintOverlay, engine, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
+  const [page, shell, cards, tutorial, hud, coinFx, completionArchive, rankPopup, stageResults, dossier, engine, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
     readFile(new URL("../app/components/DirectorGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CrtTelevision.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ConstellationCard.tsx", import.meta.url), "utf8"),
@@ -86,7 +84,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
     readFile(new URL("../app/components/CompletionArchiveSequence.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/RankPopup.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/StageResultsOverlay.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/components/VisualHintOverlay.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/MovieDossierOverlay.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/data/game-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/data/director-hints.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/data/genre-colors.ts", import.meta.url), "utf8"),
@@ -119,15 +117,16 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /purchaseDirectorHint/);
   assert.match(page, /buyDirectorHint/);
   assert.match(page, /reopenDirectorHint/);
-  assert.match(page, /visualHintKey/);
-  assert.match(page, /openVisualHint/);
-  assert.match(page, /<VisualHintOverlay/);
+  assert.match(page, /dossierFilmId/);
+  assert.match(page, /openDossier/);
+  assert.match(page, /<MovieDossierOverlay/);
+  assert.match(page, /pressure-\$\{Math\.min\(GAME_CONFIG\.maximumActiveDirectors, Math\.max\(1, game\.activeDirectorIds\.length\)\)\}/);
   assert.match(page, /wrongStreakRef\.current >= 4/);
   assert.match(page, /hintRescueCooldownMoveRef\.current = outcome\.state\.moveCount \+ 8/);
   assert.match(page, /setHintRescueVisible\(true\)/);
   assert.match(page, /setAutoOpenHint\(\{ filmId: targetFilmId, type \}\)/);
   assert.match(page, /setLastHintByFilm/);
-  assert.match(page, /4200/);
+  assert.match(page, /1200/);
   assert.match(page, /<CoinRewardLayer events=\{coinRewards\}/);
   assert.match(page, /setArchiveSequence\(/);
   assert.match(page, /playSound\("punch"\)/);
@@ -139,17 +138,12 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /Color = Genre/i);
   assert.match(page, /GENRE_LEGEND\.map/);
   assert.match(page, /Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple/);
-  assert.match(page, /youtube-nocookie\.com\/embed/);
+  assert.doesNotMatch(page, /ticket-trailer|trailer-overlay/);
   assert.doesNotMatch(page, /selectedDirector|correctDirectorId|auto.?fil/i);
   assert.match(shell, /className="crt-tv"/);
   assert.match(shell, /className="crt-screen"/);
   assert.match(shell, /className="crt-scanlines" aria-hidden="true"/);
   assert.match(cards, /ticket-stickers/);
-  assert.match(cards, /is-auto-open/);
-  assert.match(cards, /is-expanded/);
-  assert.match(cards, /setIsExpanded\(\(current\) => !current\)/);
-  assert.match(cards, /onMouseLeave=\{\(\) => setIsExpanded\(false\)\}/);
-  assert.match(cards, /aria-expanded=\{isVisual \? undefined : isExpanded \|\| isAutoOpen\}/);
   assert.match(cards, /is-new/);
   assert.match(cards, /isLatest=\{sticker\.type === lastHintType\}/);
   assert.match(cards, /onMouseEnter=\{\(\) => onHintContext\(film\.id\)\}/);
@@ -164,8 +158,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(cards, /director-context-button/);
   assert.match(cards, /Open director hints for/);
   assert.match(cards, /Open file \+/);
-  assert.match(cards, /Open full-screen/);
-  assert.match(cards, /onOpenVisualHint/);
+  assert.match(cards, /Open movie file/);
+  assert.match(cards, /onOpenDossier/);
   assert.match(cards, /director-socket/);
   assert.match(cards, /data-drop-target="false"/);
   assert.match(cards, /data-drop-target="director"/);
@@ -175,25 +169,28 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(cards, /"--ticket-accent": genreColor\(film\.genre\)/);
   assert.doesNotMatch(cards, /film\.accent/);
   assert.match(cards, /className="ticket-meta"/);
-  assert.match(cards, /<span>\{displayGenre\}<\/span><i aria-hidden="true">·<\/i><b>\{film\.year\}<\/b>/);
+  assert.match(cards, /runtime\.hints\.releaseDate/);
+  assert.match(cards, /DATE \?/);
+  assert.match(cards, /className="ticket-dossier"/);
   assert.doesNotMatch(cards, /className="ticket-year"/);
   assert.match(cards, /<span>\{film\.title\}<\/span><small>\{film\.year\}<\/small>/);
   assert.match(cards, /`\$\{film\.title\} \(\$\{film\.year\}\)`/);
   assert.doesNotMatch(cards, /waiting_for_director|Hold for a future slot/);
   assert.doesNotMatch(cards, /sticker-frames|commons\.wikimedia\.org/);
-  assert.match(visualHintOverlay, /role="dialog" aria-modal="true"/);
-  assert.match(visualHintOverlay, /event\.key === "Escape"/);
-  assert.match(visualHintOverlay, /event\.key === "Tab"/);
-  assert.match(visualHintOverlay, /closeButtonRef\.current\?\.focus\(\)/);
-  assert.match(visualHintOverlay, /Movie title/);
-  assert.match(visualHintOverlay, /visual-hint-content/);
-  assert.match(visualHintOverlay, /visual-hint-close/);
-  assert.match(visualHintOverlay, /Close \$\{sticker\.label\} for \$\{film\.title\}/);
-  assert.match(visualHintOverlay, /type === "movieIdentification" \? frames\.slice\(0, 1\) : frames\.slice\(0, 3\)/);
-  assert.match(visualHintOverlay, /decoding="async"/);
-  assert.match(visualHintOverlay, /draggable=\{false\}/);
-  assert.match(visualHintOverlay, /commons\.wikimedia\.org\/w\/api\.php/);
-  assert.match(visualHintOverlay, /<h2 id=\{titleId\}>\{film\.title\}<\/h2>[\s\S]*?<p>\{sticker\.label\}<\/p>[\s\S]*?visual-hint-content[\s\S]*?visual-hint-close/);
+  assert.match(dossier, /role="dialog" aria-modal="true"/);
+  assert.match(dossier, /event\.key === "Escape"/);
+  assert.match(dossier, /event\.key === "Tab"/);
+  assert.match(dossier, /closeButtonRef\.current\?\.focus\(\)/);
+  assert.match(dossier, /Movie evidence file/);
+  assert.match(dossier, /dossier-placeholder/);
+  assert.match(dossier, /dossier-director-row/);
+  assert.match(dossier, /Release date/);
+  assert.match(dossier, /Emergency answer/);
+  assert.match(dossier, /no move/i);
+  assert.match(dossier, /youtube-nocookie\.com\/embed/);
+  assert.match(dossier, /decoding="async"/);
+  assert.match(dossier, /draggable=\{false\}/);
+  assert.match(dossier, /commons\.wikimedia\.org\/w\/api\.php/);
   assert.match(tutorial, /GAME_LOOP_BEATS\.map/);
   assert.equal((tutorial.match(/title: "/g) ?? []).length, 3);
   assert.match(tutorial, /MATCH 3 FILMS/);
@@ -221,10 +218,9 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(hud, /PANIC OPTION/);
   assert.match(hud, /GAME_CONFIG\.emergencyAnswerScoreMultiplier/);
   assert.match(hud, /is-emergency/);
-  assert.match(hud, /directorCount >= 5 \? "critical" : directorCount === 4 \? "warning" : directorCount === 3 \? "noticeable" : "normal"/);
-  assert.match(hud, /Board pressure/);
-  assert.match(hud, /capacity-state/);
-  assert.doesNotMatch(hud, /capacity-leds/);
+  assert.doesNotMatch(hud, /Board pressure|capacity-panel|victory-panel|VictoryChip/);
+  assert.match(hud, /releaseDate: \{ icon: "#", name: "Release date"/);
+  assert.match(hud, /no move spent/);
   assert.match(hud, /arrivalState = isCleanup \? "cleanup"/);
   assert.match(hud, /arrival-\$\{arrivalState\}/);
   assert.match(hud, /multiplier-badge/);
@@ -240,7 +236,6 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(hud, /Last safe move · Clear a director now/);
   assert.match(hud, /Choose this movie&apos;s director/);
   assert.match(hud, /Assign \$\{selectedFilm\.title\} to/);
-  assert.ok(hud.indexOf("hint-panel") < hud.indexOf("victory-panel"));
   assert.match(hud, /hint-shop-intro/);
   assert.match(hud, /aria-atomic="true"/);
   assert.match(coinFx, /Array\.from\(\{ length: event\.amount \}/);
@@ -251,7 +246,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(completionArchive, /3 films matched/i);
   assert.match(completionArchive, /filmTitles\.slice\(0, 3\)\.map/);
   assert.match(completionArchive, /ARCHIVED/);
-  assert.match(completionArchive, /To Victory Area/);
+  assert.match(completionArchive, /Filed · Moving on/);
   assert.doesNotMatch(rankPopup, /rank-rays/);
   assert.match(stageResults, /Stage completed!/);
   assert.match(stageResults, /Stage score/);
@@ -267,6 +262,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.doesNotMatch(engine, /waiting_to_reappear|wrongMovieReappearDelay/);
   assert.match(engine, /visibleMovieCount:\s*10/);
   assert.match(engine, /maximumActiveDirectors:\s*5/);
+  assert.match(engine, /initialDirectorCountdown:\s*5/);
+  assert.match(engine, /releaseDate:\s*2/);
   assert.match(engine, /stageDirectorCount:\s*10/);
   assert.doesNotMatch(engine, /targetDirectorCompletions/);
   assert.match(engine, /startingCoins:\s*4/);
@@ -319,20 +316,16 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /\.genre-rule/);
   assert.match(styles, /\.hint-panel\.is-rescue\s*\{[^}]*animation:\s*hint-shop-rescue 1s ease-in-out 4/s);
   assert.match(styles, /\.hint-sticker\.is-new\s*\{[^}]*animation:\s*hint-sticker-plop/s);
-  assert.match(styles, /\.hint-sticker\.is-auto-open \.hint-sticker-popover/);
-  assert.match(styles, /\.hint-sticker\.is-expanded \.hint-sticker-popover/);
-  assert.match(styles, /\.hint-sticker-popover\s*\{[^}]*visibility:\s*hidden[^}]*opacity:\s*0[^}]*transition:/s);
   assert.doesNotMatch(styles, /\.movie-ticket:(?:hover|focus)[^,{]*\.hint-sticker\.is-latest \.hint-sticker-popover/);
   assert.doesNotMatch(styles, /\.movie-ticket\.is-selected \.hint-sticker\.is-latest \.hint-sticker-popover/);
   assert.match(styles, /\.hint-context\.has-movie strong/);
   assert.match(styles, /\.hint-context\.has-director strong/);
   assert.match(styles, /\.director-hint-reveal/);
   assert.match(styles, /\.director-slot\.is-selected/);
-  assert.match(styles, /\.visual-hint-layer\s*\{[^}]*inset:\s*0[^}]*background:\s*rgba\(2,9,12,\.82\)/s);
-  assert.match(styles, /\.visual-hint-dialog/);
-  assert.match(styles, /\.visual-hint-content\.is-frame-check/);
-  assert.match(styles, /\.visual-hint-content\.is-visual-dna/);
-  assert.match(styles, /\.visual-hint-close\s*\{[^}]*top:[^}]*width:\s*clamp\(54px/s);
+  assert.match(styles, /\.dossier-layer/);
+  assert.match(styles, /\.movie-dossier/);
+  assert.match(styles, /\.dossier-placeholder/);
+  assert.match(styles, /\.dossier-director-row/);
   assert.match(styles, /\.hint-price b/);
   assert.match(styles, /\.hint-grid button\.is-repeatable/);
   assert.match(styles, /\.hint-grid button\.is-emergency/);
@@ -375,10 +368,11 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /@keyframes director-plop/);
   assert.match(styles, /@keyframes coin-flight/);
   assert.match(styles, /@keyframes coin-readout-pop/);
-  assert.match(styles, /\.capacity-panel\.pressure-noticeable/);
-  assert.match(styles, /\.capacity-panel\.pressure-warning/);
-  assert.match(styles, /\.capacity-panel\.pressure-critical/);
-  assert.match(styles, /\.capacity-state/);
+  assert.match(styles, /\.director-board-screen\.pressure-1/);
+  assert.match(styles, /\.director-board-screen\.pressure-2/);
+  assert.match(styles, /\.director-board-screen\.pressure-3/);
+  assert.match(styles, /\.director-board-screen\.pressure-4/);
+  assert.match(styles, /\.director-board-screen\.pressure-5/);
   assert.match(styles, /@keyframes next-director-safe-pulse/);
   assert.match(styles, /@keyframes next-director-safe-pulse[\s\S]*?background-color:\s*#66333a/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.next-director-panel\.is-last-safe\s*\{[^}]*animation:\s*none/s);

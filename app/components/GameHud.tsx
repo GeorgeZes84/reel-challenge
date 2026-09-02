@@ -5,14 +5,13 @@ import type { Director, Film } from "../data/directors";
 import { DIRECTOR_HINT_LABELS, DIRECTOR_HINT_TYPES, type DirectorHintType } from "../data/director-hints";
 import { canUseEliminationHint, GAME_CONFIG, hintCostForMovie, HINT_TYPES, type DirectorHintReveal, type GameState, type HintType } from "../data/game-engine";
 import { CoinWalletEffects, type CoinRewardEvent } from "./CoinRewardFx";
-import { VictoryChip } from "./ConstellationCard";
 
 const hintCopy: Record<HintType, { icon: string; name: string; detail: string }> = {
   movieIdentification: { icon: "▣", name: "Frame check", detail: "See one production frame" },
-  visualLanguage: { icon: "◈", name: "Visual DNA", detail: "Open a three-frame study" },
+  releaseDate: { icon: "#", name: "Release date", detail: "Reveal the movie's release year" },
   verbalDirectorClue: { icon: "≡", name: "Director note", detail: "Reveal another credit" },
   elimination: { icon: "×", name: "Cross one out", detail: "Eliminate another candidate" },
-  directAnswer: { icon: "!", name: "EMERGENCY ANSWER", detail: "Reveal the correct director · reduced score" },
+  directAnswer: { icon: "!", name: "EMERGENCY ANSWER", detail: "Reveal the correct director · no move spent · reduced score" },
 };
 
 const directorHintCopy: Record<DirectorHintType, { icon: string; detail: string }> = {
@@ -32,7 +31,6 @@ type GameHudProps = {
   openDirectorHint: DirectorHintReveal | null;
   hintRescueVisible: boolean;
   directorsById: Map<string, Director>;
-  filmsById: Map<string, Film>;
   message: string;
   coinRewards: readonly CoinRewardEvent[];
   coinWalletRef: RefObject<HTMLDivElement | null>;
@@ -50,7 +48,6 @@ export function GameHud({
   openDirectorHint,
   hintRescueVisible,
   directorsById,
-  filmsById,
   message,
   coinRewards,
   coinWalletRef,
@@ -63,7 +60,6 @@ export function GameHud({
   const directorCount = game.activeDirectorIds.length;
   const stageVictoryDirectors = game.victoryDirectors.filter((victory) => game.stageDirectorIds.includes(victory.directorId));
   const stageVictories = stageVictoryDirectors.length;
-  const capacityPressure = directorCount >= 5 ? "critical" : directorCount === 4 ? "warning" : directorCount === 3 ? "noticeable" : "normal";
   const isCleanup = game.stagePhase === "cleanup";
   const isFinalReelsPending = !isCleanup && game.upcomingDirectorIds.length === 0;
   const arrivalState = isCleanup ? "cleanup" : isFinalReelsPending ? "finalizing" : game.nextDirectorIn <= 1 ? "critical" : game.nextDirectorIn === 2 ? "hot" : game.nextDirectorIn === 3 ? "warm" : "safe";
@@ -82,22 +78,6 @@ export function GameHud({
             <b>×{game.currentMultiplier}</b>
             <small>{game.currentMultiplier === 3 ? "ON FIRE" : game.currentMultiplier === 2 ? "STEAMING" : `${game.correctStreak} COMBO`}</small>
           </div>
-        </div>
-      </section>
-
-      <section className={`hud-panel capacity-panel pressure-${capacityPressure}`} aria-label="Director capacity">
-        <div
-          className="capacity-summary"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-          aria-label={`Director capacity ${directorCount} of ${GAME_CONFIG.maximumActiveDirectors}. Pressure ${capacityPressure}.`}
-        >
-          <div className="capacity-line">
-            <span className="hud-label">Board pressure</span>
-            <b>{directorCount} / {GAME_CONFIG.maximumActiveDirectors}</b>
-          </div>
-          <span className="capacity-state">{capacityPressure}</span>
         </div>
       </section>
 
@@ -182,19 +162,6 @@ export function GameHud({
             })}
           </div>
         )}
-      </section>
-
-      <section className="hud-panel victory-panel" aria-label="Victory Area">
-        <div className="panel-heading"><span className="hud-label">Stage {game.stageNumber} archive</span><b>{stageVictories}/{game.stageDirectorIds.length}</b></div>
-        <div className="victory-list">
-          {stageVictoryDirectors.length === 0 ? <p>Complete all 3 films<br />to archive a director.</p> : null}
-          {stageVictoryDirectors.slice(-3).reverse().map((victory) => {
-            const director = directorsById.get(victory.directorId);
-            if (!director) return null;
-            const films = victory.filmIds.map((id) => filmsById.get(id)).filter((film): film is Film => Boolean(film));
-            return <VictoryChip director={director} films={films} key={victory.directorId} />;
-          })}
-        </div>
       </section>
 
       {selectedFilm ? (
