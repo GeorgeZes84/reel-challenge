@@ -333,11 +333,9 @@ function initialDirectorSlots(directorIds: readonly string[], maximumSlots: numb
   return Array.from({ length: maximumSlots }, (_, index) => directorIds[index] ?? null);
 }
 
-function fillFirstDirectorSlot(slots: readonly (string | null)[], directorId: string) {
-  const nextSlots = [...slots];
-  const openSlot = nextSlots.indexOf(null);
-  if (openSlot >= 0) nextSlots[openSlot] = directorId;
-  return nextSlots;
+function appendDirectorSlot(slots: readonly (string | null)[], directorId: string) {
+  const packedDirectors = slots.filter((slotDirectorId): slotDirectorId is string => Boolean(slotDirectorId));
+  return initialDirectorSlots([...packedDirectors, directorId], slots.length);
 }
 
 function advanceMoveAndDirector(state: GameState, config: GameConfig) {
@@ -373,7 +371,7 @@ function advanceMoveAndDirector(state: GameState, config: GameConfig) {
     ...moved,
     movies: nextMovies,
     activeDirectorIds: [...moved.activeDirectorIds, spawnedDirectorId],
-    directorSlots: fillFirstDirectorSlot(moved.directorSlots, spawnedDirectorId),
+    directorSlots: appendDirectorSlot(moved.directorSlots, spawnedDirectorId),
     upcomingDirectorIds: remainingUpcoming,
     // An emergency arrival prevents an empty-board lock without consuming the
     // scheduled timer. A normal due arrival starts the next countdown.
@@ -631,7 +629,10 @@ export function attemptAssignment(
 
   if (completed) {
     activeDirectorIds = state.activeDirectorIds.filter((id) => id !== targetDirectorId);
-    directorSlots = state.directorSlots.map((directorId) => directorId === targetDirectorId ? null : directorId);
+    directorSlots = initialDirectorSlots(
+      state.directorSlots.filter((directorId): directorId is string => Boolean(directorId) && directorId !== targetDirectorId),
+      config.maximumActiveDirectors,
+    );
     const completedFilms = nextAssignments[targetDirectorId];
     for (const completedFilmId of completedFilms) {
       nextMovies[completedFilmId] = { ...nextMovies[completedFilmId], status: "completed" };

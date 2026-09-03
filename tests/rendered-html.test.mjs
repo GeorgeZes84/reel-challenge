@@ -144,13 +144,17 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /requestAnimationFrame/);
   assert.match(page, /<DirectorArrivalFx event=\{directorArrival\}/);
   assert.match(page, /arrivalImpactOrder=/);
+  assert.match(page, /animateDirectorConveyor/);
+  assert.match(page, /startRects\.forEach/);
+  assert.match(page, /element\.animate/);
+  assert.match(page, /slice\(completedSlotIndex \+ 1\)/);
   assert.match(page, /game\.directorSlots\[slotIndex\]/);
   assert.match(page, /stage-start-announcement/);
   assert.match(page, /startInReference=\{tutorialCompleted\}/);
   assert.match(page, /setArchiveSequence\(/);
   assert.match(page, /playSound\("punch"\)/);
   assert.match(page, /\[50, 130, 210\]\.forEach/);
-  assert.match(page, /schedule\(\(\) => \{\s*applyOutcome\(outcome\);\s*setActionLocked\(false\)/s);
+  assert.match(page, /schedule\(\(\) => \{[\s\S]*?const conveyorStarts[\s\S]*?applyOutcome\(outcome\);\s*animateDirectorConveyor\(conveyorStarts\);\s*setActionLocked\(false\)/);
   assert.match(page, /isArchiving=\{archiveSequence\?\.directorId === directorId\}/);
   assert.match(page, /<CompletionArchiveSequence directorName=\{archiveSequence\.directorName\} filmTitles=\{archiveSequence\.filmTitles\}/);
   assert.doesNotMatch(page, /completionBurst|completion-burst|completion-ticket/);
@@ -325,6 +329,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(engine, /comboThreeCoinBonus:\s*2/);
   assert.match(engine, /status: "stage_complete"/);
   assert.match(engine, /export function startNextStage/);
+  assert.match(engine, /function appendDirectorSlot/);
+  assert.match(engine, /initialDirectorSlots\(\[\.\.\.packedDirectors, directorId\], slots\.length\)/);
   assert.match(engine, /export function completeTimelineStage/);
   assert.match(engine, /stageSet\.has\(movie\.ownerDirectorId\)/);
   assert.match(engine, /eliminationHintCosts:\s*\[2, 3, 5\]/);

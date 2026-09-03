@@ -85,10 +85,12 @@ function assertPlayingField(state, config = GAME_CONFIG) {
   );
   assert.equal(state.directorSlots.length, config.maximumActiveDirectors, "director slot count must stay fixed");
   assert.deepEqual(
-    state.directorSlots.filter(Boolean).sort(),
-    [...state.activeDirectorIds].sort(),
-    "fixed director slots must contain every active director exactly once",
+    state.directorSlots.filter(Boolean),
+    state.activeDirectorIds,
+    "director slots must form the same left-packed queue as active directors",
   );
+  const firstEmptySlot = state.directorSlots.indexOf(null);
+  if (firstEmptySlot >= 0) assert.ok(state.directorSlots.slice(firstEmptySlot).every((directorId) => directorId === null), "empty positions must stay to the right of the queue");
   assert.ok(actionableFilm(state), "a playing field must expose an active-owner movie");
   for (const filmId of state.visibleMovieIds) {
     assert.ok(state.movies[filmId], `visible runtime missing for ${filmId}`);
@@ -300,7 +302,6 @@ test("three correct movies complete a director and move its stack to victory", (
   const config = { ...GAME_CONFIG, initialDirectorCountdown: 99 };
   let state = createInitialGame(directorPool(), "completion-seed", config);
   const directorId = state.activeDirectorIds[0];
-  const completedSlot = state.directorSlots.indexOf(directorId);
   const otherSlotSnapshot = [...state.directorSlots];
   const films = state.directorFilmIds[directorId];
   let lastOutcome;
@@ -313,10 +314,9 @@ test("three correct movies complete a director and move its stack to victory", (
   assert.equal(lastOutcome.coinsAwarded, config.correctMatchCoins + config.directorCompletionCoins);
   assert.equal(lastOutcome.scoreAwarded, config.correctMatchScore + config.directorCompletionScore);
   assert.equal(state.activeDirectorIds.includes(directorId), false);
-  assert.equal(state.directorSlots[completedSlot], null);
-  otherSlotSnapshot.forEach((slotDirectorId, index) => {
-    if (index !== completedSlot) assert.equal(state.directorSlots[index], slotDirectorId, "other directors must not slide into a cleared slot");
-  });
+  const expectedQueue = otherSlotSnapshot.filter((slotDirectorId) => slotDirectorId && slotDirectorId !== directorId);
+  assert.deepEqual(state.directorSlots.slice(0, expectedQueue.length), expectedQueue, "remaining directors must slide left without changing order");
+  assert.ok(state.directorSlots.slice(expectedQueue.length).every((slotDirectorId) => slotDirectorId === null));
   assert.equal(state.victoryDirectors.length, 1);
   assert.deepEqual(state.victoryDirectors[0].filmIds, films);
   assert.equal(state.assignments[directorId].length, 3);
@@ -333,6 +333,7 @@ test("the countdown spawns a director, then overflows at configured capacity", (
   state = resolveCorrect(state, spawnConfig).state;
   assert.equal(state.activeDirectorIds.length, 3);
   assert.equal(state.directorSlots.filter(Boolean).length, 3);
+  assert.deepEqual(state.directorSlots.slice(0, 3), state.activeDirectorIds, "the arriving director must join the right edge of the queue");
 
   const overflowConfig = { ...GAME_CONFIG, maximumActiveDirectors: 2, initialDirectorCountdown: 1 };
   state = createInitialGame(pool, "overflow-seed", overflowConfig);

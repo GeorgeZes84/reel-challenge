@@ -11,7 +11,7 @@ A playful, browser-only cinema-knowledge game presented inside a responsive, vec
 - Drag a movie ticket onto an active director. Every director has three visible ticket receivers that wake up during a drag; empty future director positions stay inert. A correct match scores points and coins, while a wrong match is rejected, punched, and returned to its previous position without revealing its owner.
 - Every ticket always shows its genre; the interface never labels films by whether their director is currently on the board.
 - Match all three films for a director to move that completed set into the Victory Area and free its slot.
-- Director positions are fixed spatial state. Completing a Director leaves that exact slot empty; other drop targets never slide underneath a fast-moving pointer, and the next arrival fills the first open slot.
+- Director cards form a left-packed conveyor. Completing one closes the gap by sliding every card to its right one position left without changing their order; the next arrival always joins at the right edge of the active queue.
 - Completing a set now triggers a film-first archive sequence: the three tickets snap together, receive a physical archive punch with synchronized sound, compress into a stack, travel toward the Victory Area, and only then clear the director from the board.
 - A visible move countdown introduces more directors until all five slots can be occupied.
 - The oversized Next Director number moves from green through yellow and orange to red at one move; at four occupied slots with one move left, it enters a muted-red “last safe move” pulse.

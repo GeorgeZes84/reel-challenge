@@ -380,7 +380,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     }
     if (outcome.completedDirectorId) {
       const completedName = lookups.directorsById.get(outcome.completedDirectorId)?.name ?? "Director";
-      setHudMessage(`${completedName} archived. Slot cleared. +${outcome.coinsAwarded} coins total.`);
+      setHudMessage(`${completedName} archived. Director queue advanced. +${outcome.coinsAwarded} coins total.`);
     }
     if (game.stagePhase !== "cleanup" && outcome.state.stagePhase === "cleanup") {
       setHudMessage(`Cleanup phase. ${outcome.state.visibleMovieIds.length} movies remain; solved tickets will not be replaced.`);
@@ -388,6 +388,28 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     if (outcome.state.status === "lost") setHudMessage("All five channels were occupied when a new director arrived.");
     if (outcome.state.status === "stage_complete") setHudMessage(`Stage ${outcome.state.stageNumber} cleared. The table is clean.`);
     if (outcome.state.status === "won") setHudMessage("Every available director is archived.");
+  };
+
+  const animateDirectorConveyor = (startRects: Array<{ directorId: string; rect: DOMRect }>) => {
+    if (startRects.length === 0 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    window.requestAnimationFrame(() => {
+      startRects.forEach(({ directorId, rect }, index) => {
+        const element = directorRefs.current.get(directorId);
+        const destination = element?.getBoundingClientRect();
+        if (!element || !destination) return;
+        const offsetX = rect.left - destination.left;
+        const offsetY = rect.top - destination.top;
+        if (Math.abs(offsetX) < 1 && Math.abs(offsetY) < 1) return;
+        element.animate(
+          [
+            { transform: `translate3d(${offsetX}px, ${offsetY}px, 0)` },
+            { transform: "translate3d(-5px, 0, 0)", offset: .78 },
+            { transform: "translate3d(0, 0, 0)" },
+          ],
+          { duration: 460, delay: index * 38, easing: "cubic-bezier(.2,.82,.2,1)", fill: "both" },
+        );
+      });
+    });
   };
 
   const resolveAssignment = (filmId: string, targetDirectorId: string, returnPosition?: Position) => {
@@ -427,7 +449,14 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           schedule(() => playSound("complete"), 610);
         }
         schedule(() => {
+          const completedSlotIndex = game.directorSlots.indexOf(completedDirectorId);
+          const conveyorStarts = game.directorSlots
+            .slice(completedSlotIndex + 1)
+            .filter((directorId): directorId is string => Boolean(directorId))
+            .map((directorId) => ({ directorId, rect: directorRefs.current.get(directorId)?.getBoundingClientRect() }))
+            .filter((entry): entry is { directorId: string; rect: DOMRect } => Boolean(entry.rect));
           applyOutcome(outcome);
+          animateDirectorConveyor(conveyorStarts);
           setActionLocked(false);
         }, applyDelay);
         schedule(() => {
