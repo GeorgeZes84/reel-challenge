@@ -36,6 +36,13 @@ const phaseCopy: Record<TutorialPhase, { label: string; title: string; body: str
   reference: { label: "How to play", title: "Quick reference", body: "The playable lesson is complete. You can replay it here whenever you want." },
 };
 
+const dragActionCopy: Partial<Record<TutorialPhase, { step: string; action: string; detail: string }>> = {
+  "first-match": { step: "1 · START HERE", action: `Hold + drag ${tutorialFilms[0].title}`, detail: "Move the glowing ticket toward the center." },
+  "wrong-match": { step: "2 · TRY A WRONG MATCH", action: `Hold + drag ${wrongFilm.title}`, detail: "This highlighted ticket is deliberately incorrect." },
+  "second-match": { step: "3 · CONTINUE", action: `Hold + drag ${tutorialFilms[1].title}`, detail: "Use the next glowing ticket." },
+  "final-match": { step: "4 · FINISH", action: `Hold + drag ${tutorialFilms[2].title}`, detail: "This final ticket completes the Director." },
+};
+
 function expectedFilmId(phase: TutorialPhase) {
   if (phase === "first-match") return tutorialFilms[0].id;
   if (phase === "wrong-match") return wrongFilm.id;
@@ -75,6 +82,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   const focusFilmId = expectedFilmId(phase);
   const isDragPhase = Boolean(focusFilmId);
   const copy = phaseCopy[phase];
+  const dragAction = dragActionCopy[phase];
   const assignedFilms = assignedFilmIds.map((filmId) => tutorialDirector.films.find((film) => film.id === filmId)).filter((film): film is Film => Boolean(film));
 
   const resetLesson = () => {
@@ -216,6 +224,12 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
 
       {renderTrainingBoard ? (
         <div className={`interactive-tutorial-board${isDragPhase ? " is-awaiting-drag" : ""}${phase === "director-complete" ? " is-completing" : ""}`} ref={boardRef} onPointerMove={moveDragging} onPointerUp={stopDragging} onPointerCancel={cancelDragging} data-focus-film={focusFilmId ?? undefined}>
+          {dragAction ? (
+            <div className={`tutorial-action-popup is-${phase}`} role="note">
+              <b>{dragAction.step}</b><strong>{dragAction.action}</strong><small>{dragAction.detail}</small>
+            </div>
+          ) : null}
+          {phase === "director-complete" ? <div className="tutorial-action-popup is-watching" role="status"><b>WATCH THE RESULT</b><strong>The completed Director clears</strong><small>No click needed—the next step appears automatically.</small></div> : null}
           {tutorialFilms.map((film) => {
             const runtime = runtimeByFilm[film.id];
             if (!runtime || runtime.status === "assigned" || (phase === "director-archived" && film.id !== wrongFilm.id)) return null;
@@ -224,6 +238,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
 
           {phase !== "director-archived" ? (
             <div className={`tutorial-director-target${isDragPhase ? " is-highlighted" : ""}${hoveringDirector ? " is-hovered" : ""}`}>
+              {isDragPhase ? <div className="tutorial-drop-instruction"><b>2</b><span><strong>RELEASE HERE</strong><small>Drop on this Director card</small></span></div> : null}
               <DirectorSlot slotIndex={0} director={tutorialDirector} films={assignedFilms} expectedFilmIds={tutorialFilmIds} isReceiving={Boolean(draggingFilmId)} dropState={hoveringDirector ? "neutral" : directorFeedback} isSpawning={false} arrivalImpactOrder={null} isArchiving={phase === "director-complete"} isEliminated={false} isSelected={false} registerRef={(_, element) => { directorRef.current = element; }} onSelect={() => setStatusMessage("This blue card is the Director drop target.")} onOpenDossier={() => undefined} />
             </div>
           ) : <div className="tutorial-cleared-slot" role="status"><span>✓</span><strong>DIRECTOR COMPLETE</strong><small>Slot cleared for the next arrival</small></div>}
@@ -235,14 +250,14 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
           <div className="tutorial-hint-object">
             <MovieTicket film={wrongFilm} runtime={runtimeByFilm[wrongFilm.id]} position={{ x: 0, y: 0, rotation: -2 }} isDragging={false} isRejected={false} isSpawning={false} isSelected lastHintType={movieHintBought ? "releaseDate" : undefined} autoOpenHintType={movieHintBought ? "releaseDate" : undefined} onPointerDown={() => undefined} onSelect={() => undefined} onOpenDossier={() => undefined} />
           </div>
-          <div className="tutorial-hint-purchase"><span>MOVIE HINT · SMALL CLUE</span><strong>Release year</strong><small>{movieHintBought ? `${wrongFilm.year} revealed and stored on the ticket.` : "Normally 1 coin · Tutorial sample is free"}</small><button type="button" className="primary-pixel-button" onClick={buyMovieHint}>{movieHintBought ? "Hint owned ✓" : "Try free Movie Hint"}</button></div>
+          <div className="tutorial-hint-purchase"><span>MOVIE HINT · SMALL CLUE</span><strong>Release year</strong><small>{movieHintBought ? `${wrongFilm.year} revealed and stored on the ticket.` : "Normally 1 coin · Tutorial sample is free"}</small><div className="tutorial-click-stack"><span>{movieHintBought ? "DONE · THE STICKER STAYS ON THE TICKET" : "CLICK HERE TO REVEAL THE DATE ↓"}</span><button type="button" className="primary-pixel-button" onClick={buyMovieHint}>{movieHintBought ? "Hint owned ✓" : "Try free Movie Hint"}</button></div></div>
         </div>
       ) : null}
 
       {phase === "director-hint" ? (
         <div className="tutorial-hint-demo is-director-demo">
           <div className="tutorial-hint-object tutorial-director-file"><DirectorSlot slotIndex={0} director={tutorialDirector} films={[]} expectedFilmIds={tutorialFilmIds} isReceiving={false} dropState={null} isSpawning={false} arrivalImpactOrder={null} isArchiving={false} isEliminated={false} isSelected registerRef={() => undefined} onSelect={() => undefined} onOpenDossier={() => undefined} /></div>
-          <div className="tutorial-hint-purchase"><span>DIRECTOR HINT · STRONG CLUE</span><strong>Career period</strong><small>{directorHintBought ? directorHintProfile(tutorialDirector.id)?.careerPeriod : "Normally priced by strength · Tutorial sample is free"}</small><button type="button" className="primary-pixel-button" onClick={buyDirectorHint}>{directorHintBought ? "Hint owned ✓" : "Try free Director Hint"}</button></div>
+          <div className="tutorial-hint-purchase"><span>DIRECTOR HINT · STRONG CLUE</span><strong>Career period</strong><small>{directorHintBought ? directorHintProfile(tutorialDirector.id)?.careerPeriod : "Normally priced by strength · Tutorial sample is free"}</small><div className="tutorial-click-stack"><span>{directorHintBought ? "DONE · THIS NOTE STAYS IN THE DIRECTOR FILE" : "CLICK HERE TO OPEN THE DIRECTOR CLUE ↓"}</span><button type="button" className="primary-pixel-button" onClick={buyDirectorHint}>{directorHintBought ? "Hint owned ✓" : "Try free Director Hint"}</button></div></div>
         </div>
       ) : null}
 
@@ -260,9 +275,9 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
       ) : null}
 
       {phase !== "reference" ? <div className="tutorial-live-status" role="status" aria-live="polite">{statusMessage}</div> : null}
-      {phase === "director-archived" ? <button type="button" className="primary-pixel-button tutorial-next-button" onClick={() => { setPhase("movie-hint"); setStatusMessage("Choose the free Release Year sample."); }}>Try a Movie Hint</button> : null}
-      {phase === "movie-hint" && movieHintBought ? <button type="button" className="primary-pixel-button tutorial-next-button" onClick={() => { setPhase("director-hint"); setStatusMessage("Now open one clue about the filmmaker."); }}>Next: Director Hint</button> : null}
-      {phase === "director-hint" && directorHintBought ? <button type="button" className="primary-pixel-button tutorial-next-button" onClick={finishTutorial}>Finish tutorial</button> : null}
+      {phase === "director-archived" ? <div className="tutorial-next-action"><span>CLICK TO CONTINUE ↓</span><button type="button" className="primary-pixel-button tutorial-next-button" onClick={() => { setPhase("movie-hint"); setStatusMessage("Choose the free Release Year sample."); }}>Try a Movie Hint</button></div> : null}
+      {phase === "movie-hint" && movieHintBought ? <div className="tutorial-next-action"><span>NEXT STEP ↓</span><button type="button" className="primary-pixel-button tutorial-next-button" onClick={() => { setPhase("director-hint"); setStatusMessage("Now open one clue about the filmmaker."); }}>Next: Director Hint</button></div> : null}
+      {phase === "director-hint" && directorHintBought ? <div className="tutorial-next-action"><span>YOU’RE READY ↓</span><button type="button" className="primary-pixel-button tutorial-next-button" onClick={finishTutorial}>Finish tutorial</button></div> : null}
     </div>
   );
 }
