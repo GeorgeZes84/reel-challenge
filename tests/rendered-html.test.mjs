@@ -242,6 +242,10 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(timeline, /onClick=\{\(\) => placeAt/);
   assert.match(timeline, /DATE \?/);
   assert.match(timeline, /movies you encountered in Stage 1/i);
+  assert.match(timeline, /DECADE FINDER/);
+  assert.match(timeline, /decadeMarkers/);
+  assert.match(timeline, /scrollIntoView/);
+  assert.match(timeline, /movies.*currently filed in this span/);
   assert.match(hud, /HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR_HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR HINTS/);
@@ -433,6 +437,9 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /\.timeline-stage/);
   assert.match(styles, /\.timeline-film-card/);
   assert.match(styles, /\.timeline-gap/);
+  assert.match(styles, /\.timeline-decade-guide/);
+  assert.match(styles, /\.timeline-decade-scale/);
+  assert.match(styles, /\.timeline-film-card > b\s*\{[^}]*font-size:\s*clamp\(17px/s);
   assert.match(styles, /\.hint-grid small\s*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.match(styles, /@keyframes ticket-plop/);
   assert.match(styles, /@keyframes ticket-reject-return/);

@@ -55,10 +55,11 @@ function isCorrectGap(placed: readonly PlacedFilm[], film: Film, gapIndex: numbe
   return film.year >= left && film.year <= right;
 }
 
-function TimelineFilmCard({ film, result, dateHidden = false }: { film: Film; result?: PlacedFilm["result"]; dateHidden?: boolean }) {
+function TimelineFilmCard({ film, result, dateHidden = false, cardRef }: { film: Film; result?: PlacedFilm["result"]; dateHidden?: boolean; cardRef?: (element: HTMLElement | null) => void }) {
   return (
     <article
-      className={`timeline-film-card${result ? ` is-${result}` : ""}`}
+      ref={cardRef}
+      className={`timeline-film-card${result ? ` is-${result}` : ""}${dateHidden ? " is-date-hidden" : ""}`}
       style={{ "--timeline-accent": genreColor(film.genre) } as CSSProperties}
       aria-label={`${film.title}. ${dateHidden ? "Release date hidden" : `Released ${film.year}`}.`}
     >
@@ -94,9 +95,29 @@ export function ReleaseTimelineStage({
   const [dragging, setDragging] = useState(false);
   const [message, setMessage] = useState("Choose one movie from Stage 1. Its year becomes your timeline anchor.");
   const gapRefs = useRef(new Map<number, HTMLButtonElement>());
+  const filmRefs = useRef(new Map<string, HTMLElement>());
   const dragRef = useRef<DragRecord | null>(null);
   const hoveredGapRef = useRef<number | null>(null);
+  const [focusedDecade, setFocusedDecade] = useState<number | null>(null);
   const currentFilm = anchor ? deck.challengeFilms[currentIndex] ?? null : null;
+  const decadeMarkers = useMemo(() => {
+    if (placed.length === 0) return [];
+    const earliestDecade = Math.floor(placed[0].film.year / 10) * 10;
+    const latestDecade = Math.floor(placed[placed.length - 1].film.year / 10) * 10;
+    return Array.from({ length: (latestDecade - earliestDecade) / 10 + 1 }, (_, index) => {
+      const decade = earliestDecade + index * 10;
+      return {
+        decade,
+        films: placed.filter(({ film }) => Math.floor(film.year / 10) * 10 === decade).map(({ film }) => film),
+      };
+    });
+  }, [placed]);
+
+  const focusDecade = (decade: number, eraFilms: Film[]) => {
+    setFocusedDecade(decade);
+    filmRefs.current.get(eraFilms[0]?.id)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    setMessage(`${decade}s: ${eraFilms.length} ${eraFilms.length === 1 ? "movie" : "movies"} currently filed in this span.`);
+  };
 
   const selectAnchor = (film: Film) => {
     setAnchor(film);
@@ -211,6 +232,22 @@ export function ReleaseTimelineStage({
   return (
     <div className="timeline-stage" onPointerMove={moveDragging} onPointerUp={stopDragging} onPointerCancel={cancelDragging} onLostPointerCapture={cancelDragging}>
       <header className="timeline-stage-heading"><span>STAGE 2 · RELEASE TIMELINE</span><h2>When did it come out?</h2><p>Drag the current ticket into the correct chronological gap. A wrong placement reveals the year and files it correctly, so the timeline always teaches as it grows.</p></header>
+      <nav className="timeline-decade-guide" aria-label="Jump to a decade in the movie timeline">
+        <div className="timeline-decade-summary">
+          <span>DECADE FINDER</span>
+          <strong>{decadeMarkers.length === 1 ? `${decadeMarkers[0].decade}s` : `${decadeMarkers[0]?.decade}s → ${decadeMarkers.at(-1)?.decade}s`}</strong>
+          <small>Pick an era to center its movies.</small>
+        </div>
+        <div className="timeline-decade-scale">
+          {decadeMarkers.map(({ decade, films: eraFilms }) => (
+            <button type="button" aria-pressed={focusedDecade === decade} disabled={eraFilms.length === 0} onClick={() => focusDecade(decade, eraFilms)} key={decade}>
+              <span>{decade}s</span>
+              <strong>{eraFilms.length}</strong>
+              <small>{eraFilms.length === 1 ? "MOVIE" : "MOVIES"}</small>
+            </button>
+          ))}
+        </div>
+      </nav>
       <div className="timeline-track-wrap" aria-label="Chronological movie timeline">
         <div className="timeline-track">
           {placed.flatMap((entry, index) => [
@@ -223,7 +260,12 @@ export function ReleaseTimelineStage({
               disabled={!currentFilm}
               key={`gap-${index}`}
             ><span>DROP</span><b>+</b></button>,
-            <TimelineFilmCard film={entry.film} result={entry.result} key={entry.film.id} />,
+            <TimelineFilmCard
+              film={entry.film}
+              result={entry.result}
+              cardRef={(element) => { if (element) filmRefs.current.set(entry.film.id, element); else filmRefs.current.delete(entry.film.id); }}
+              key={entry.film.id}
+            />,
           ]).concat(
             <button
               type="button"
