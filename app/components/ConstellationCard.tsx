@@ -44,7 +44,6 @@ type MovieTicketProps = {
   autoOpenHintType?: HintType;
   onPointerDown: (event: ReactPointerEvent<HTMLElement>, filmId: string) => void;
   onSelect: (filmId: string) => void;
-  onHintContext: (filmId: string) => void;
   onOpenDossier: (filmId: string) => void;
 };
 
@@ -57,7 +56,7 @@ const PUNCH_HOLE_POSITIONS = [
   { x: 6, y: 54 },
 ] as const;
 
-export function MovieTicket({ film, runtime, position, isDragging, isRejected, isSpawning, isSelected, lastHintType, autoOpenHintType, onPointerDown, onSelect, onHintContext, onOpenDossier }: MovieTicketProps) {
+export function MovieTicket({ film, runtime, position, isDragging, isRejected, isSpawning, isSelected, lastHintType, autoOpenHintType, onPointerDown, onSelect, onOpenDossier }: MovieTicketProps) {
   const stickers = HINT_TYPES.map((type) => runtime.hints[type]).filter((sticker): sticker is HintSticker => Boolean(sticker));
   const displayGenre = genreFamily(film.genre);
   const previewPlacement = `${position.y < 32 ? "preview-below" : ""} ${position.x < 18 ? "preview-right" : position.x > 69 ? "preview-left" : ""}`;
@@ -78,8 +77,6 @@ export function MovieTicket({ film, runtime, position, isDragging, isRejected, i
       className={`movie-ticket ${previewPlacement} ${visiblePunches.length ? "has-punches" : ""} ${isDragging ? "is-dragging" : ""} ${isRejected ? "is-rejected" : ""} ${isSpawning ? "is-spawning" : ""} ${isSelected ? "is-selected" : ""} ${autoOpenHintType ? "has-open-hint" : ""}`}
       style={ticketStyle}
       onPointerDown={(event) => onPointerDown(event, film.id)}
-      onMouseEnter={() => onHintContext(film.id)}
-      onFocusCapture={() => onHintContext(film.id)}
       data-movie-id={film.id}
       data-punch-count={runtime.punchCount}
     >

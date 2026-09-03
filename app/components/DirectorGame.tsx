@@ -603,12 +603,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setHudMessage("Movie ticket selected. Drag it to a director, buy a clue, or choose a director in the side panel.");
   };
 
-  const handleMovieHintContext = (filmId: string) => {
-    setHintContextFilmId(filmId);
-    setHintContextDirectorId(null);
-    setOpenDirectorHintKey(null);
-  };
-
   const handleDirectorHintContext = (directorId: string) => {
     setSelectedFilmId(null);
     setHintContextFilmId(null);
@@ -620,7 +614,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
   const buyHint = (type: HintType) => {
     if (actionLocked || !hintContextFilmId) {
-      setHudMessage("Hover or select a ticket before visiting the hint shop.");
+      setHudMessage("Select a ticket before visiting the hint shop.");
       return;
     }
     const targetFilmId = hintContextFilmId;
@@ -879,7 +873,6 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
               autoOpenHintType={autoOpenHint?.filmId === filmId ? autoOpenHint.type : undefined}
               onPointerDown={startDragging}
               onSelect={handleSelect}
-              onHintContext={handleMovieHintContext}
               onOpenDossier={openDossier}
               key={filmId}
             />

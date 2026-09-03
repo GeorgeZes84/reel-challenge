@@ -170,8 +170,10 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(cards, /ticket-stickers/);
   assert.match(cards, /is-new/);
   assert.match(cards, /isLatest=\{sticker\.type === lastHintType\}/);
-  assert.match(cards, /onMouseEnter=\{\(\) => onHintContext\(film\.id\)\}/);
-  assert.match(cards, /onFocusCapture=\{\(\) => onHintContext\(film\.id\)\}/);
+  assert.doesNotMatch(cards, /onMouseEnter=.*HintContext/);
+  assert.doesNotMatch(cards, /onFocusCapture=.*HintContext/);
+  assert.doesNotMatch(cards, /onHintContext/);
+  assert.match(cards, /onClick=\{\(\) => onSelect\(film\.id\)\}/);
   assert.match(cards, /aria-pressed=\{isSelected\}/);
   assert.match(cards, /PUNCH_HOLE_POSITIONS/);
   assert.match(cards, /runtime\.punchCount/);

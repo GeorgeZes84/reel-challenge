@@ -219,7 +219,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
           {tutorialFilms.map((film) => {
             const runtime = runtimeByFilm[film.id];
             if (!runtime || runtime.status === "assigned" || (phase === "director-archived" && film.id !== wrongFilm.id)) return null;
-            return <MovieTicket film={film} runtime={runtime} position={positions[film.id]} isDragging={draggingFilmId === film.id} isRejected={rejectedFilmId === film.id} isSpawning={false} isSelected={focusFilmId === film.id} lastHintType={undefined} autoOpenHintType={undefined} onPointerDown={startDragging} onSelect={(filmId) => setStatusMessage(filmId === focusFilmId ? "Hold and drag this ticket onto the blue Director card." : "Use the glowing ticket for this step.")} onHintContext={() => undefined} onOpenDossier={() => setStatusMessage("The magnifying glass opens this ticket’s Movie File during the game.")} key={film.id} />;
+            return <MovieTicket film={film} runtime={runtime} position={positions[film.id]} isDragging={draggingFilmId === film.id} isRejected={rejectedFilmId === film.id} isSpawning={false} isSelected={focusFilmId === film.id} lastHintType={undefined} autoOpenHintType={undefined} onPointerDown={startDragging} onSelect={(filmId) => setStatusMessage(filmId === focusFilmId ? "Hold and drag this ticket onto the blue Director card." : "Use the glowing ticket for this step.")} onOpenDossier={() => setStatusMessage("The magnifying glass opens this ticket’s Movie File during the game.")} key={film.id} />;
           })}
 
           {phase !== "director-archived" ? (
@@ -233,7 +233,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
       {phase === "movie-hint" ? (
         <div className="tutorial-hint-demo is-movie-demo">
           <div className="tutorial-hint-object">
-            <MovieTicket film={wrongFilm} runtime={runtimeByFilm[wrongFilm.id]} position={{ x: 0, y: 0, rotation: -2 }} isDragging={false} isRejected={false} isSpawning={false} isSelected lastHintType={movieHintBought ? "releaseDate" : undefined} autoOpenHintType={movieHintBought ? "releaseDate" : undefined} onPointerDown={() => undefined} onSelect={() => undefined} onHintContext={() => undefined} onOpenDossier={() => undefined} />
+            <MovieTicket film={wrongFilm} runtime={runtimeByFilm[wrongFilm.id]} position={{ x: 0, y: 0, rotation: -2 }} isDragging={false} isRejected={false} isSpawning={false} isSelected lastHintType={movieHintBought ? "releaseDate" : undefined} autoOpenHintType={movieHintBought ? "releaseDate" : undefined} onPointerDown={() => undefined} onSelect={() => undefined} onOpenDossier={() => undefined} />
           </div>
           <div className="tutorial-hint-purchase"><span>MOVIE HINT · SMALL CLUE</span><strong>Release year</strong><small>{movieHintBought ? `${wrongFilm.year} revealed and stored on the ticket.` : "Normally 1 coin · Tutorial sample is free"}</small><button type="button" className="primary-pixel-button" onClick={buyMovieHint}>{movieHintBought ? "Hint owned ✓" : "Try free Movie Hint"}</button></div>
         </div>
