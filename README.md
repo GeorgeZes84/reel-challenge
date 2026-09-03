@@ -1,10 +1,12 @@
 # The Director Game
 
-A playful, browser-only film-matching game presented inside a responsive, vector-built 90s CRT television. Match a continuously replenished field of ten movie tickets to the directors occupying five slots—no backend required.
+A playful, browser-only cinema-knowledge game presented inside a responsive, vector-built 90s CRT television. Each Stage uses the same growing movie archive in a different challenge—no backend required.
 
 ## Game loop
 
 - A run begins with two active directors and exactly ten visible film tickets.
+- Stage 1 is the Director matching game. Stage 2 turns the movies just cleared into a Release Timeline minigame; later Stage modes remain intentionally open for future design.
+- In the Release Timeline, choose one familiar Stage 1 movie as the dated anchor, then place seven hidden-date tickets before, between, or after the growing chronology. Correct positions earn 500 points; mistakes reveal the year and file the ticket correctly so every attempt adds knowledge.
 - The opening How to Play is a controlled interactive lesson built from the real ticket and Director components: one correct drag, one deliberate wrong drag and punch, Director completion, then free Movie and Director hint samples. Afterward it becomes a compact replayable reference.
 - Drag a movie ticket onto an active director. Every director has three visible ticket receivers that wake up during a drag; empty future director positions stay inert. A correct match scores points and coins, while a wrong match is rejected, punched, and returned to its previous position without revealing its owner.
 - Every ticket always shows its genre; the interface never labels films by whether their director is currently on the board.
@@ -71,6 +73,7 @@ npm run lint
 - `app/components/GameLoopTutorial.tsx` — controlled real-object drag lesson, wrong-answer punch, completion, free hint samples, and compact reference
 - `app/components/CompletionArchiveSequence.tsx` — three-ticket snap, punch, stack compression, and Victory Area handoff
 - `app/components/StageResultsOverlay.tsx` — animated stage score transfer, performance stats, and next-stage handoff
+- `app/components/ReleaseTimelineStage.tsx` — Stage 2 anchor selection, chronological ticket placement, scoring HUD, and results handoff
 - `app/components/ConstellationCard.tsx` — reusable movie tickets, director slots, hint stickers, and victory chips
 - `app/components/VisualHintOverlay.tsx` — shared full-screen Frame Check and Visual DNA inspection experience
 - `app/data/game-engine.ts` — deterministic state transitions, fairness rules, economy, ranks, and centralized `GAME_CONFIG`

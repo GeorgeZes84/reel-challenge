@@ -517,6 +517,33 @@ export function startNextStage(state: GameState, config: GameConfig = GAME_CONFI
   return enterCleanupIfReady(refillMovieField(nextState, config));
 }
 
+export function completeTimelineStage(
+  state: GameState,
+  result: { score: number; correct: number; attempted: number },
+  config: GameConfig = GAME_CONFIG,
+): GameState {
+  if (state.status !== "playing" || state.stageNumber !== 2) {
+    throw new Error("The release timeline can only complete while Stage 2 is active.");
+  }
+  const wrong = Math.max(0, result.attempted - result.correct);
+  return {
+    ...state,
+    status: "stage_complete",
+    stagePhase: "cleanup",
+    activeDirectorIds: [],
+    directorSlots: Array.from({ length: config.maximumActiveDirectors }, () => null),
+    upcomingDirectorIds: [],
+    visibleMovieIds: [],
+    moveCount: state.moveCount + result.attempted,
+    nextDirectorIn: 0,
+    score: state.score + Math.max(0, result.score),
+    correctAttempts: state.correctAttempts + result.correct,
+    wrongAttempts: state.wrongAttempts + wrong,
+    correctStreak: 0,
+    currentMultiplier: 1,
+  };
+}
+
 export type AttemptOutcome = {
   kind: "correct" | "wrong";
   filmId: string;

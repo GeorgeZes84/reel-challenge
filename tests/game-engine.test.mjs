@@ -6,6 +6,7 @@ import {
   actionableMovieCount,
   attemptAssignment,
   canUseEliminationHint,
+  completeTimelineStage,
   createInitialGame,
   hintCostForMovie,
   hasNextStage,
@@ -499,6 +500,34 @@ test("a stage stops future content, enters cleanup, and completes only after the
   assert.equal(state.stageStartScore, stageOneScore);
   assert.deepEqual(state.stageDirectorIds, futureStageIds);
   assert.ok(state.visibleMovieIds.every((filmId) => futureStageIds.includes(ownerOf(state, filmId))));
+});
+
+test("the Stage 2 release timeline contributes to the run and hands off cleanly to Stage 3", () => {
+  const pool = directorPool(30);
+  let state = createInitialGame(pool, "timeline-stage");
+
+  while (state.status === "playing") state = resolveCorrect(state).state;
+  const stageOneScore = state.score;
+  const stageOneCorrect = state.correctAttempts;
+  state = startNextStage(state);
+  assert.equal(state.stageNumber, 2);
+  const stageTwoStartMoves = state.moveCount;
+
+  state = completeTimelineStage(state, { score: 2500, correct: 5, attempted: 7 });
+  assert.equal(state.status, "stage_complete");
+  assert.equal(state.stageNumber, 2);
+  assert.equal(state.score, stageOneScore + 2500);
+  assert.equal(state.correctAttempts, stageOneCorrect + 5);
+  assert.equal(state.wrongAttempts, 2);
+  assert.equal(state.moveCount, stageTwoStartMoves + 7);
+  assert.deepEqual(state.activeDirectorIds, []);
+  assert.deepEqual(state.visibleMovieIds, []);
+  assert.ok(state.directorSlots.every((directorId) => directorId === null));
+
+  state = startNextStage(state);
+  assert.equal(state.status, "playing");
+  assert.equal(state.stageNumber, 3);
+  assert.equal(state.score, stageOneScore + 2500);
 });
 
 test("cleanup waits until every remaining stage movie is physically on the board", () => {

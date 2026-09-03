@@ -30,7 +30,7 @@ const phaseCopy: Record<TutorialPhase, { label: string; title: string; body: str
   "second-match": { label: "Training 3 / 6", title: `Drag ${tutorialFilms[1].title} onto the Director.`, body: "The wrong ticket stayed on the board and gained a punch. Correct tickets fill the Director’s receivers." },
   "final-match": { label: "Training 4 / 6", title: `Drag ${tutorialFilms[2].title} to complete the Director.`, body: "Three correct movie tickets complete one Director and clear that Director slot." },
   "director-complete": { label: "Result", title: "Director complete — file leaving the board.", body: "Completion is a bigger event than one correct match because it removes an entire problem from the board." },
-  "director-archived": { label: "Training 4 / 6 complete", title: "The Director slot is clear.", body: "Complete the Directors in each Stage and continue building your total score." },
+  "director-archived": { label: "Training 4 / 6 complete", title: "The Director slot is clear.", body: "Stage 1 is about matching movies to Directors. Later Stages introduce new cinema challenges while your total score keeps growing." },
   "movie-hint": { label: "Training 5 / 6", title: "Try one free Movie Hint.", body: "This one’s on us. Hints reveal extra information you can use to narrow down the answer." },
   "director-hint": { label: "Training 6 / 6", title: "Now try one free Director Hint.", body: "Movie Hints stay on tickets. Director Hints build a separate file about the filmmaker." },
   reference: { label: "How to play", title: "Quick reference", body: "The playable lesson is complete. You can replay it here whenever you want." },
@@ -253,7 +253,7 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
             <li><b>2</b><span><strong>Wrong guesses add punches</strong><small>The ticket stays on the board so you can keep deducing.</small></span></li>
             <li><b>3</b><span><strong>Use files when needed</strong><small>Magnifying glass = Movie Hints. Blue Director card = Director Hints.</small></span></li>
             <li><b>4</b><span><strong>Keep ahead of arrivals</strong><small>A new Director arrives every three moves. Five full slots means Game Over.</small></span></li>
-            <li><b>5</b><span><strong>Clear each Stage</strong><small>Continue to the next Stage while your total score keeps growing.</small></span></li>
+            <li><b>5</b><span><strong>Complete each Stage</strong><small>Each Stage can introduce a different cinema challenge. Your total score carries forward.</small></span></li>
           </ol>
           <div><button type="button" onClick={resetLesson}>Replay playable lesson</button><button type="button" className="primary-pixel-button" onClick={onClose}>Continue to game</button></div>
         </div>

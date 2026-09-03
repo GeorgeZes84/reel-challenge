@@ -73,11 +73,12 @@ test("server-renders The Director Game's complete opening state", async () => {
 });
 
 test("keeps the CRT game local, data-driven and answer-safe", async () => {
-  const [page, shell, cards, tutorial, hud, coinFx, directorArrivalFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
+  const [page, shell, cards, tutorial, timeline, hud, coinFx, directorArrivalFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
     readFile(new URL("../app/components/DirectorGame.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CrtTelevision.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ConstellationCard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/GameLoopTutorial.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ReleaseTimelineStage.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/GameHud.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CoinRewardFx.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/DirectorArrivalFx.tsx", import.meta.url), "utf8"),
@@ -117,6 +118,11 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /outcome\.multiplier/);
   assert.match(page, /startNextStage\(game\)/);
   assert.match(page, /<StageResultsOverlay game=\{game\}/);
+  assert.match(page, /game\.stageNumber === 2/);
+  assert.match(page, /<ReleaseTimelineStage/);
+  assert.match(page, /<ReleaseTimelineHud/);
+  assert.match(page, /completeTimelineStage/);
+  assert.match(page, /<ReleaseTimelineResults/);
   assert.match(page, /hintContextFilmId/);
   assert.match(page, /hintContextDirectorId/);
   assert.match(page, /purchaseDirectorHint/);
@@ -125,7 +131,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /dossierFilmId/);
   assert.match(page, /openDossier/);
   assert.match(page, /<MovieDossierOverlay/);
-  assert.match(page, /pressure-\$\{Math\.min\(GAME_CONFIG\.maximumActiveDirectors, Math\.max\(1, game\.activeDirectorIds\.length\)\)\}/);
+  assert.match(page, /pressure-\$\{isTimelineStage \? 1 : Math\.min\(GAME_CONFIG\.maximumActiveDirectors, Math\.max\(1, game\.activeDirectorIds\.length\)\)\}/);
   assert.match(page, /wrongStreakRef\.current >= 4/);
   assert.match(page, /hintRescueCooldownMoveRef\.current = outcome\.state\.moveCount \+ 8/);
   assert.match(page, /setHintRescueVisible\(true\)/);
@@ -221,7 +227,17 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(tutorial, /Try free Director Hint/);
   assert.match(tutorial, /This one’s on us/);
   assert.match(tutorial, /Quick reference/);
+  assert.match(tutorial, /Later Stages introduce new cinema challenges/);
   assert.doesNotMatch(tutorial, /tutorial-ticket-fan|tutorial-board-slots|GAME_LOOP_BEATS/);
+  assert.match(timeline, /TIMELINE_CARD_COUNT = 7/);
+  assert.match(timeline, /TIMELINE_POINTS_PER_CORRECT = 500/);
+  assert.match(timeline, /Choose your starting point/);
+  assert.match(timeline, /isCorrectGap/);
+  assert.match(timeline, /correctGapIndex/);
+  assert.match(timeline, /onPointerDown=\{startDragging\}/);
+  assert.match(timeline, /onClick=\{\(\) => placeAt/);
+  assert.match(timeline, /DATE \?/);
+  assert.match(timeline, /movies you encountered in Stage 1/i);
   assert.match(hud, /HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR_HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR HINTS/);
@@ -309,6 +325,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(engine, /comboThreeCoinBonus:\s*2/);
   assert.match(engine, /status: "stage_complete"/);
   assert.match(engine, /export function startNextStage/);
+  assert.match(engine, /export function completeTimelineStage/);
   assert.match(engine, /stageSet\.has\(movie\.ownerDirectorId\)/);
   assert.match(engine, /eliminationHintCosts:\s*\[2, 3, 5\]/);
   assert.match(engine, /emergencyAnswerScoreMultiplier:\s*0\.5/);
@@ -407,6 +424,9 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.interactive-tutorial-board/);
   assert.match(styles, /\.stage-progress-line/);
   assert.match(styles, /\.stage-start-announcement/);
+  assert.match(styles, /\.timeline-stage/);
+  assert.match(styles, /\.timeline-film-card/);
+  assert.match(styles, /\.timeline-gap/);
   assert.match(styles, /\.hint-grid small\s*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.match(styles, /@keyframes ticket-plop/);
   assert.match(styles, /@keyframes ticket-reject-return/);
