@@ -83,6 +83,9 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
   const isDragPhase = Boolean(focusFilmId);
   const copy = phaseCopy[phase];
   const dragAction = dragActionCopy[phase];
+  const boardGuidance = dragAction ?? (phase === "director-complete"
+    ? { step: "WATCH THE RESULT", action: "The completed Director clears", detail: "No click needed—the next step appears automatically." }
+    : { step: "STEP COMPLETE", action: "The Director slot is clear", detail: "Use the Continue button below to learn about hints." });
   const assignedFilms = assignedFilmIds.map((filmId) => tutorialDirector.films.find((film) => film.id === filmId)).filter((film): film is Film => Boolean(film));
 
   const resetLesson = () => {
@@ -223,25 +226,24 @@ export function GameLoopTutorial({ onClose, onComplete, startInReference = false
       </header>
 
       {renderTrainingBoard ? (
-        <div className={`interactive-tutorial-board${isDragPhase ? " is-awaiting-drag" : ""}${phase === "director-complete" ? " is-completing" : ""}`} ref={boardRef} onPointerMove={moveDragging} onPointerUp={stopDragging} onPointerCancel={cancelDragging} data-focus-film={focusFilmId ?? undefined}>
-          {dragAction ? (
-            <div className={`tutorial-action-popup is-${phase}`} role="note">
-              <b>{dragAction.step}</b><strong>{dragAction.action}</strong><small>{dragAction.detail}</small>
-            </div>
-          ) : null}
-          {phase === "director-complete" ? <div className="tutorial-action-popup is-watching" role="status"><b>WATCH THE RESULT</b><strong>The completed Director clears</strong><small>No click needed—the next step appears automatically.</small></div> : null}
-          {tutorialFilms.map((film) => {
-            const runtime = runtimeByFilm[film.id];
-            if (!runtime || runtime.status === "assigned" || (phase === "director-archived" && film.id !== wrongFilm.id)) return null;
-            return <MovieTicket film={film} runtime={runtime} position={positions[film.id]} isDragging={draggingFilmId === film.id} isRejected={rejectedFilmId === film.id} isSpawning={false} isSelected={focusFilmId === film.id} lastHintType={undefined} autoOpenHintType={undefined} onPointerDown={startDragging} onSelect={(filmId) => setStatusMessage(filmId === focusFilmId ? "Hold and drag this ticket onto the blue Director card." : "Use the glowing ticket for this step.")} onOpenDossier={() => setStatusMessage("The magnifying glass opens this ticket’s Movie File during the game.")} key={film.id} />;
-          })}
+        <div className="tutorial-board-stage">
+          <div className="tutorial-guidance-strip" role={phase === "director-complete" ? "status" : "note"}>
+            <b>{boardGuidance.step}</b><span><strong>{boardGuidance.action}</strong><small>{boardGuidance.detail}</small></span>
+          </div>
+          <div className={`interactive-tutorial-board${isDragPhase ? " is-awaiting-drag" : ""}${phase === "director-complete" ? " is-completing" : ""}`} ref={boardRef} onPointerMove={moveDragging} onPointerUp={stopDragging} onPointerCancel={cancelDragging} data-focus-film={focusFilmId ?? undefined}>
+            {tutorialFilms.map((film) => {
+              const runtime = runtimeByFilm[film.id];
+              if (!runtime || runtime.status === "assigned" || (phase === "director-archived" && film.id !== wrongFilm.id)) return null;
+              return <MovieTicket film={film} runtime={runtime} position={positions[film.id]} isDragging={draggingFilmId === film.id} isRejected={rejectedFilmId === film.id} isSpawning={false} isSelected={focusFilmId === film.id} lastHintType={undefined} autoOpenHintType={undefined} onPointerDown={startDragging} onSelect={(filmId) => setStatusMessage(filmId === focusFilmId ? "Hold and drag this ticket onto the blue Director card." : "Use the glowing ticket for this step.")} onOpenDossier={() => setStatusMessage("The magnifying glass opens this ticket’s Movie File during the game.")} key={film.id} />;
+            })}
 
-          {phase !== "director-archived" ? (
-            <div className={`tutorial-director-target${isDragPhase ? " is-highlighted" : ""}${hoveringDirector ? " is-hovered" : ""}`}>
-              {isDragPhase ? <div className="tutorial-drop-instruction"><b>2</b><span><strong>RELEASE HERE</strong><small>Drop on this Director card</small></span></div> : null}
-              <DirectorSlot slotIndex={0} director={tutorialDirector} films={assignedFilms} expectedFilmIds={tutorialFilmIds} isReceiving={Boolean(draggingFilmId)} dropState={hoveringDirector ? "neutral" : directorFeedback} isSpawning={false} arrivalImpactOrder={null} isArchiving={phase === "director-complete"} isEliminated={false} isSelected={false} registerRef={(_, element) => { directorRef.current = element; }} onSelect={() => setStatusMessage("This blue card is the Director drop target.")} onOpenDossier={() => undefined} />
-            </div>
-          ) : <div className="tutorial-cleared-slot" role="status"><span>✓</span><strong>DIRECTOR COMPLETE</strong><small>Slot cleared for the next arrival</small></div>}
+            {phase !== "director-archived" ? (
+              <div className={`tutorial-director-target${isDragPhase ? " is-highlighted" : ""}${hoveringDirector ? " is-hovered" : ""}`}>
+                {isDragPhase ? <div className="tutorial-drop-instruction"><b>2</b><span><strong>RELEASE HERE</strong><small>Drop on this Director card</small></span></div> : null}
+                <DirectorSlot slotIndex={0} director={tutorialDirector} films={assignedFilms} expectedFilmIds={tutorialFilmIds} isReceiving={Boolean(draggingFilmId)} dropState={hoveringDirector ? "neutral" : directorFeedback} isSpawning={false} arrivalImpactOrder={null} isArchiving={phase === "director-complete"} isEliminated={false} isSelected={false} registerRef={(_, element) => { directorRef.current = element; }} onSelect={() => setStatusMessage("This blue card is the Director drop target.")} onOpenDossier={() => undefined} />
+              </div>
+            ) : <div className="tutorial-cleared-slot" role="status"><span>✓</span><strong>DIRECTOR COMPLETE</strong><small>Slot cleared for the next arrival</small></div>}
+          </div>
         </div>
       ) : null}
 

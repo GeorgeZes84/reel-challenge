@@ -232,7 +232,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(tutorial, /Try free Movie Hint/);
   assert.match(tutorial, /Try free Director Hint/);
   assert.match(tutorial, /This one’s on us/);
-  assert.match(tutorial, /tutorial-action-popup/);
+  assert.match(tutorial, /tutorial-guidance-strip/);
   assert.match(tutorial, /RELEASE HERE/);
   assert.match(tutorial, /CLICK HERE TO REVEAL THE DATE/);
   assert.match(tutorial, /CLICK HERE TO OPEN THE DIRECTOR CLUE/);
@@ -438,7 +438,8 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /@keyframes tutorial-ticket-focus/);
   assert.match(styles, /@keyframes tutorial-director-target/);
   assert.match(styles, /\.hint-grid button:disabled:not\(\.is-owned\)/);
-  assert.match(styles, /@keyframes tutorial-callout-in/);
+  assert.match(styles, /\.tutorial-board-stage/);
+  assert.doesNotMatch(styles, /\.tutorial-action-popup/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.interactive-tutorial-board/);
   assert.match(styles, /\.stage-progress-line/);
   assert.match(styles, /\.stage-start-announcement/);
