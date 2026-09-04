@@ -14,67 +14,29 @@ async function render() {
   );
 }
 
-test("server-renders The Director Game's complete opening state", async () => {
+test("server-renders the CineRuckus main menu", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>The Director Game<\/title>/i);
-  assert.match(html, /The Director Game/i);
-  assert.equal((html.match(/class="movie-ticket /g) ?? []).length, 14);
-  assert.equal((html.match(/class="director-slot is-active/g) ?? []).length, 3);
-  assert.equal((html.match(/class="director-slot is-empty/g) ?? []).length, 3);
-  assert.equal((html.match(/data-drop-target="director"/g) ?? []).length, 3);
-  assert.equal((html.match(/data-drop-target="false"/g) ?? []).length, 3);
-  assert.equal((html.match(/data-socket-count="3"/g) ?? []).length, 3);
-  assert.equal((html.match(/class="director-socket\b/g) ?? []).length, 9);
-  assert.match(html, /class="interactive-tutorial-board/);
-  assert.doesNotMatch(html, /class="screen-instruction|ON AIR/i);
-  assert.match(html, /class="screen-bottom-sticker"/i);
-  assert.match(html, /class="genre-rule"[^>]*aria-label="Color equals genre:/i);
-  assert.match(html, /Genre key[\s\S]*?Romance[\s\S]*?Crime\/Thriller/i);
-  assert.match(html, /Drag this movie ticket onto the Director\./i);
-  assert.match(html, /The glowing rectangle is a real movie ticket/i);
-  assert.doesNotMatch(html, /Hold for a future slot/i);
-  assert.match(html, /class="director-board-screen pressure-2/i);
-  assert.doesNotMatch(html, /Director capacity|capacity-panel|Board pressure/i);
-  assert.match(html, /class="hud-panel next-director-panel arrival-warm"/i);
-  assert.match(html, /class="next-director-label">Next director in</i);
-  assert.match(html, /class="next-director-display"/i);
-  assert.match(html, /class="next-director-display"[\s\S]*?<strong>3<\/strong>[\s\S]*?<b>Moves<\/b>/i);
-  assert.match(html, /class="hud-panel score-panel multiplier-1"/i);
-  assert.match(html, /×(?:<!-- -->)?1/i);
-  assert.match(html, /STAGE (?:<!-- -->)?1/i);
-  assert.match(html, /DIRECTORS (?:<!-- -->)?0(?:<!-- -->)? \/ (?:<!-- -->)?10/i);
-  assert.match(html, /Persists across stages/i);
-  assert.doesNotMatch(html, /Victory area|victory-panel|Stage 1 archive/i);
-  assert.match(html, /Hint shop/i);
-  assert.match(html, /Hints for:/i);
-  assert.match(html, /Select a movie or director/i);
-  assert.match(html, /Frame check/i);
-  assert.match(html, /Release date/i);
-  assert.equal((html.match(/DATE \?/g) ?? []).length, 14);
-  assert.equal((html.match(/class="ticket-dossier"/g) ?? []).length, 14);
-  assert.equal((html.match(/aria-label="Open director hints for /g) ?? []).length, 3);
-  assert.match(html, /Open file \+/i);
-  const scoreIndex = html.indexOf("score-panel");
-  const nextDirectorIndex = html.indexOf("next-director-panel");
-  const hintIndex = html.indexOf("hint-panel");
-  assert.ok(scoreIndex >= 0 && scoreIndex < nextDirectorIndex && nextDirectorIndex < hintIndex);
-  assert.doesNotMatch(html.slice(scoreIndex, nextDirectorIndex), /coin-readout/);
-  assert.match(html.slice(hintIndex), /coin-readout/);
-  assert.match(html.slice(hintIndex), /4 coins/);
-  assert.match(html.slice(hintIndex), /aria-live="polite"[^>]*aria-atomic="true"/);
+  assert.match(html, /<title>CineRuckus — The Movie-Night Game Show<\/title>/i);
+  assert.match(html, /class="game-menu game-home-menu"/i);
+  assert.match(html, /CINE[\s\S]*?RUCKUS!/i);
+  assert.match(html, /The movie-night game show/i);
+  assert.match(html, /New run/i);
+  assert.match(html, /Select game/i);
+  assert.match(html, /Director, Timeline, or Cast Call/i);
+  assert.match(html, /3 games online/i);
   assert.match(html, /CRT FX/i);
-  assert.match(html, /How to play/i);
-  assert.doesNotMatch(html, /Cine-meter|score-meter|booster pack|Start round/i);
+  assert.doesNotMatch(html, /The Director Game/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
 test("keeps the CRT game local, data-driven and answer-safe", async () => {
-  const [page, shell, cards, tutorial, timeline, hud, coinFx, directorArrivalFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
+  const [page, menu, shell, cards, tutorial, timeline, hud, coinFx, directorArrivalFx, completionArchive, rankPopup, stageResults, dossier, engine, difficulty, directorHints, genreColors, styles, data, expanded, packageJson] = await Promise.all([
     readFile(new URL("../app/components/DirectorGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/GameMenu.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CrtTelevision.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/ConstellationCard.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/GameLoopTutorial.tsx", import.meta.url), "utf8"),
@@ -95,7 +57,23 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
     readFile(new URL("../app/data/expanded-directors.ts", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
+  const [castCallGame, castCallCards, castCallHud, castCallEngine, castCallData] = await Promise.all([
+    readFile(new URL("../app/components/CastCallGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CastCallCards.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CastCallHud.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cast-call-engine.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cast-call-data.ts", import.meta.url), "utf8"),
+  ]);
 
+  assert.match(page, /<GameMenu/);
+  assert.match(page, /<GameMenuConsole/);
+  assert.match(menu, /export function GameMenu/);
+  assert.match(menu, /GAME_TITLE = "CineRuckus"/);
+  assert.match(menu, /New run/i);
+  assert.match(menu, /Select game/i);
+  assert.match(menu, /title: "Find the Director"/);
+  assert.match(menu, /title: "Release Timeline"/);
+  assert.match(menu, /title: "Cast Call"/);
   assert.match(page, /attemptAssignment/);
   assert.match(page, /directorAtPoint/);
   assert.match(page, /resolveAssignment\(drag\.filmId, targetDirectorId, drag\.startPosition\)/);
@@ -117,12 +95,16 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /outcome\.comboBonusCoins/);
   assert.match(page, /outcome\.multiplier/);
   assert.match(page, /startNextStage\(game\)/);
-  assert.match(page, /<StageResultsOverlay game=\{game\}/);
+  assert.match(page, /<StageResultsOverlay\s+game=\{game\}/);
   assert.match(page, /game\.stageNumber === 2/);
+  assert.match(page, /game\.stageNumber === 3/);
   assert.match(page, /<ReleaseTimelineStage/);
   assert.match(page, /<ReleaseTimelineHud/);
   assert.match(page, /completeTimelineStage/);
   assert.match(page, /<ReleaseTimelineResults/);
+  assert.match(page, /<CastCallGame/);
+  assert.match(page, /<CastCallHud/);
+  assert.match(page, /completeCastCallStage/);
   assert.match(page, /hintContextFilmId/);
   assert.match(page, /hintContextDirectorId/);
   assert.match(page, /purchaseDirectorHint/);
@@ -131,7 +113,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /dossierFilmId/);
   assert.match(page, /openDossier/);
   assert.match(page, /<MovieDossierOverlay/);
-  assert.match(page, /pressure-\$\{isTimelineStage \? 1 : Math\.min\(GAME_CONFIG\.maximumActiveDirectors, Math\.max\(1, game\.activeDirectorIds\.length\)\)\}/);
+  assert.match(page, /pressure-\$\{isDirectorStage \? Math\.min\(GAME_CONFIG\.maximumActiveDirectors, Math\.max\(1, game\.activeDirectorIds\.length\)\) : 1\}/);
   assert.match(page, /wrongStreakRef\.current >= 4/);
   assert.match(page, /hintRescueCooldownMoveRef\.current = outcome\.state\.moveCount \+ 8/);
   assert.match(page, /setHintRescueVisible\(true\)/);
@@ -142,7 +124,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /directorCounterRef/);
   assert.match(page, /getBoundingClientRect/);
   assert.match(page, /requestAnimationFrame/);
-  assert.match(page, /<DirectorArrivalFx event=\{directorArrival\}/);
+  assert.match(page, /<DirectorArrivalFx event=\{menuView \? null : directorArrival\}/);
   assert.match(page, /arrivalImpactOrder=/);
   assert.match(page, /animateDirectorConveyor/);
   assert.match(page, /startRects\.forEach/);
@@ -252,6 +234,34 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(timeline, /decadeMarkers/);
   assert.match(timeline, /scrollIntoView/);
   assert.match(timeline, /movies.*currently filed in this span/);
+  assert.match(castCallGame, /currentActorId/);
+  assert.match(castCallGame, /setPointerCapture/);
+  assert.match(castCallGame, /onPointerCancel=\{cancelDragging\}/);
+  assert.match(castCallGame, /onLostPointerCapture=\{cancelDragging\}/);
+  assert.match(castCallGame, /onChoose=\{\(event\) =>/);
+  assert.match(castCallGame, /ArrowLeft/);
+  assert.match(castCallGame, /CastCallResults/);
+  assert.doesNotMatch(castCallGame, /actor-grid|actor-pile|unresolvedActors\.map/);
+  assert.match(castCallCards, /actor-polaroid/);
+  assert.match(castCallCards, /Portrait placeholder for/);
+  assert.match(castCallCards, /completedActors\.map/);
+  assert.doesNotMatch(castCallCards, /movie\.cast\.map/);
+  assert.match(castCallHud, /Replay Cast Call/);
+  assert.match(castCallHud, /First-try casts/);
+  assert.match(castCallEngine, /failedActorSpacing: 2/);
+  assert.match(castCallEngine, /status: "retryPause"/);
+  assert.match(castCallEngine, /enteringMovieId/);
+  assert.match(castCallEngine, /status !== "awaitingInput"/);
+  assert.match(castCallEngine, /validCastMovieIds/);
+  assert.match(castCallEngine, /reserveMovieIds/);
+  assert.match(castCallData, /The Matrix/);
+  assert.match(castCallData, /portrait\?: string/);
+  assert.match(styles, /\.cast-call-stage \{[^}]*position: relative;[^}]*touch-action: none/);
+  assert.match(styles, /@keyframes cast-camera-flash/);
+  assert.match(styles, /@keyframes polaroid-wrong/);
+  assert.match(styles, /@keyframes cast-movie-enter/);
+  assert.match(styles, /@media \(max-width: 560px\)[\s\S]*?\.cast-call-stage \{[^}]*grid-template-rows: auto 330px 205px auto/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.cast-camera-flash \{ display: none; \}/);
   assert.match(hud, /HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR_HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR HINTS/);

@@ -6,6 +6,7 @@ import {
   actionableMovieCount,
   attemptAssignment,
   canUseEliminationHint,
+  completeCastCallStage,
   completeTimelineStage,
   createInitialGame,
   hintCostForMovie,
@@ -512,6 +513,7 @@ test("the Stage 2 release timeline contributes to the run and hands off cleanly 
   const stageOneCorrect = state.correctAttempts;
   state = startNextStage(state);
   assert.equal(state.stageNumber, 2);
+  const pendingDirectorBatch = [...state.stageDirectorIds];
   const stageTwoStartMoves = state.moveCount;
 
   state = completeTimelineStage(state, { score: 2500, correct: 5, attempted: 7 });
@@ -529,6 +531,41 @@ test("the Stage 2 release timeline contributes to the run and hands off cleanly 
   assert.equal(state.status, "playing");
   assert.equal(state.stageNumber, 3);
   assert.equal(state.score, stageOneScore + 2500);
+  assert.deepEqual(state.stageDirectorIds, pendingDirectorBatch, "Timeline must not consume a Director batch");
+});
+
+test("Stage 3 Cast Call merges recognition results into the ongoing run", () => {
+  const pool = directorPool(40);
+  let state = createInitialGame(pool, "cast-call-stage");
+  while (state.status === "playing") state = resolveCorrect(state).state;
+  state = startNextStage(state);
+  state = completeTimelineStage(state, { score: 2000, correct: 4, attempted: 7 });
+  state = startNextStage(state);
+  assert.equal(state.stageNumber, 3);
+  const pendingDirectorBatch = [...state.stageDirectorIds];
+  const startingScore = state.score;
+  const startingCorrect = state.correctAttempts;
+  const startingWrong = state.wrongAttempts;
+  const startingMoves = state.moveCount;
+  const startingBestCombo = state.bestCombo;
+
+  state = completeCastCallStage(state, { score: 2875, correct: 16, incorrect: 3, bestStreak: 9 });
+  assert.equal(state.status, "stage_complete");
+  assert.equal(state.score, startingScore + 2875);
+  assert.equal(state.correctAttempts, startingCorrect + 16);
+  assert.equal(state.wrongAttempts, startingWrong + 3);
+  assert.equal(state.moveCount, startingMoves + 19);
+  assert.equal(state.bestCombo, Math.max(startingBestCombo, 9));
+  assert.equal(state.stageBestCombo, 9);
+  assert.equal(state.correctStreak, 0);
+  assert.deepEqual(state.activeDirectorIds, []);
+  assert.deepEqual(state.visibleMovieIds, []);
+
+  state = startNextStage(state);
+  assert.equal(state.status, "playing");
+  assert.equal(state.stageNumber, 4);
+  assert.equal(state.score, startingScore + 2875);
+  assert.deepEqual(state.stageDirectorIds, pendingDirectorBatch, "Cast Call must hand the pending Director batch to Stage 4");
 });
 
 test("cleanup waits until every remaining stage movie is physically on the board", () => {

@@ -462,7 +462,8 @@ export function currentStageVictoryCount(state: GameState): number {
 }
 
 export function hasNextStage(state: GameState, config: GameConfig = GAME_CONFIG): boolean {
-  return state.stageNumber * config.stageDirectorCount < state.runDirectorIds.length;
+  const completedDirectorIds = new Set(state.victoryDirectors.map((victory) => victory.directorId));
+  return config.stageDirectorCount > 0 && state.runDirectorIds.some((directorId) => !completedDirectorIds.has(directorId));
 }
 
 export function stageAccuracy(state: GameState): number {
@@ -486,8 +487,13 @@ function finishStageIfCleared(state: GameState, config: GameConfig): GameState {
 export function startNextStage(state: GameState, config: GameConfig = GAME_CONFIG): GameState {
   if (state.status !== "stage_complete") throw new Error("The current stage is not complete.");
   const nextStageNumber = state.stageNumber + 1;
-  const startIndex = state.stageNumber * config.stageDirectorCount;
-  const stageDirectorIds = state.runDirectorIds.slice(startIndex, startIndex + config.stageDirectorCount);
+  // Timeline and Cast Call are full run stages, but they do not archive a
+  // Director batch. Select the next uncompleted Directors instead of deriving
+  // content from the visible stage number so minigame stages cannot skip them.
+  const completedDirectorIds = new Set(state.victoryDirectors.map((victory) => victory.directorId));
+  const stageDirectorIds = state.runDirectorIds
+    .filter((directorId) => !completedDirectorIds.has(directorId))
+    .slice(0, config.stageDirectorCount);
   if (stageDirectorIds.length === 0) {
     return { ...state, status: "won", endReason: "archive_complete" };
   }
@@ -539,6 +545,37 @@ export function completeTimelineStage(
     wrongAttempts: state.wrongAttempts + wrong,
     correctStreak: 0,
     currentMultiplier: 1,
+  };
+}
+
+export function completeCastCallStage(
+  state: GameState,
+  result: { score: number; correct: number; incorrect: number; bestStreak: number },
+  config: GameConfig = GAME_CONFIG,
+): GameState {
+  if (state.status !== "playing" || state.stageNumber !== 3) {
+    throw new Error("Cast Call can only complete while Stage 3 is active.");
+  }
+  const correct = Math.max(0, result.correct);
+  const incorrect = Math.max(0, result.incorrect);
+  const bestStreak = Math.max(0, result.bestStreak);
+  return {
+    ...state,
+    status: "stage_complete",
+    stagePhase: "cleanup",
+    activeDirectorIds: [],
+    directorSlots: Array.from({ length: config.maximumActiveDirectors }, () => null),
+    upcomingDirectorIds: [],
+    visibleMovieIds: [],
+    moveCount: state.moveCount + correct + incorrect,
+    nextDirectorIn: 0,
+    score: state.score + Math.max(0, result.score),
+    correctAttempts: state.correctAttempts + correct,
+    wrongAttempts: state.wrongAttempts + incorrect,
+    correctStreak: 0,
+    currentMultiplier: 1,
+    bestCombo: Math.max(state.bestCombo, bestStreak),
+    stageBestCombo: Math.max(state.stageBestCombo, bestStreak),
   };
 }
 

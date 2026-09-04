@@ -8,7 +8,19 @@ import {
   type GameState,
 } from "../data/game-engine";
 
-export function StageResultsOverlay({ game, onContinue }: { game: GameState; onContinue: () => void }) {
+export function StageResultsOverlay({
+  game,
+  onContinue,
+  quickPlay = false,
+  onReplay,
+  onSelectGame,
+}: {
+  game: GameState;
+  onContinue: () => void;
+  quickPlay?: boolean;
+  onReplay?: () => void;
+  onSelectGame?: () => void;
+}) {
   const stageScore = game.score - game.stageStartScore;
   const stageMoves = game.moveCount - game.stageStartMoveCount;
   const stageCorrect = game.correctAttempts - game.stageStartCorrectAttempts;
@@ -36,14 +48,14 @@ export function StageResultsOverlay({ game, onContinue }: { game: GameState; onC
 
   return (
     <div className="screen-overlay stage-results-overlay" role="dialog" aria-modal="true" aria-labelledby="stage-result-title">
-      <p>Board cleared · Stage {game.stageNumber}</p>
-      <h2 id="stage-result-title">Stage completed!</h2>
+      <p>{quickPlay ? "Board cleared · Game 01" : `Board cleared · Stage ${game.stageNumber}`}</p>
+      <h2 id="stage-result-title">{quickPlay ? "Game completed!" : "Stage completed!"}</h2>
 
       <div className="stage-score-transfer" role="status" aria-live="polite" aria-atomic="true">
-        <div><span>Stage score</span><strong>+{stageScore.toLocaleString("en-US")}</strong></div>
+        <div><span>{quickPlay ? "Game score" : "Stage score"}</span><strong>+{stageScore.toLocaleString("en-US")}</strong></div>
         <i aria-hidden="true">→</i>
         <div><span>Total score</span><strong>{animatedTotal.toLocaleString("en-US")}</strong></div>
-        <small>+{stageScore.toLocaleString("en-US")} gained during this stage</small>
+        <small>+{stageScore.toLocaleString("en-US")} gained during this {quickPlay ? "game" : "stage"}</small>
       </div>
 
       <div className="stage-results-grid">
@@ -58,15 +70,27 @@ export function StageResultsOverlay({ game, onContinue }: { game: GameState; onC
       </div>
 
       <div className="future-reward-slot">
-        <span>Reward bay</span>
-        <strong>Intermission slot reserved</strong>
-        <small>Future bonuses and stage modifiers can dock here.</small>
+        <span>{quickPlay ? "Game 01 complete" : "Reward bay"}</span>
+        <strong>{quickPlay ? "Ready for another take" : "Intermission slot reserved"}</strong>
+        <small>{quickPlay ? "Replay Find the Director or choose another movie game." : "Future bonuses and stage modifiers can dock here."}</small>
       </div>
 
-      <button type="button" className="primary-pixel-button" onClick={onContinue}>
-        {nextStageAvailable ? `Continue to Stage ${game.stageNumber + 1}` : "Complete the archive"}
-      </button>
-      {nextStageAvailable ? <small className="stage-continue-note">Your total score and run-best combo continue into the next Stage.</small> : null}
+      {quickPlay ? (
+        <>
+          <div className="cast-call-result-actions">
+            {onReplay ? <button type="button" className="primary-pixel-button" onClick={onReplay}>Play again</button> : null}
+            {onSelectGame ? <button type="button" className="secondary-pixel-button" onClick={onSelectGame}>Select another game</button> : null}
+          </div>
+          <small className="stage-continue-note">Quick Play scores stay with this game.</small>
+        </>
+      ) : (
+        <>
+          <button type="button" className="primary-pixel-button" onClick={onContinue}>
+            {nextStageAvailable ? `Continue to Stage ${game.stageNumber + 1}` : "Complete the archive"}
+          </button>
+          {nextStageAvailable ? <small className="stage-continue-note">Your total score and run-best combo continue into the next Stage.</small> : null}
+        </>
+      )}
     </div>
   );
 }

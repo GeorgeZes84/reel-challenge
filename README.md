@@ -1,13 +1,28 @@
-# The Director Game
+# CineRuckus
 
-A playful, browser-only cinema-knowledge game presented inside a responsive, vector-built 90s CRT television. Each Stage uses the same growing movie archive in a different challenge—no backend required.
+**The Movie-Night Game Show**
+
+CineRuckus is a playful, browser-only collection of cinema games presented inside a responsive, vector-built 90s CRT television. A full run carries one growing movie archive and score through the lineup, while quick play makes every finished mode directly testable—no backend required.
+
+## Main menu
+
+- **New Run** starts the full CineRuckus lineup from the beginning, preserving score and progress as each game hands off to the next.
+- **Select Game** opens a quick-play submenu so a mode can be launched immediately with a fresh score, without clearing the earlier games first.
+
+The current quick-play lineup has three games:
+
+1. **Find the Director** — match movie tickets to the filmmaker behind them.
+2. **Release Timeline** — arrange films in chronological order.
+3. **Cast Call** — match actors to the movies where they belong.
 
 ## Game loop
 
 - A run begins with two active directors and exactly ten visible film tickets.
-- Stage 1 is the Director matching game. Stage 2 turns the movies just cleared into a Release Timeline minigame; later Stage modes remain intentionally open for future design.
+- Stage 1 is the Director matching game. Stage 2 turns the movies just cleared into a Release Timeline minigame. Stage 3 is Cast Call, a fast actor-to-movie sorting game; later Stage modes remain intentionally open for future design.
 - In the Release Timeline, choose one familiar Stage 1 movie as the dated anchor, then place seven hidden-date tickets before, between, or after the growing chronology. Large ticket years and a live decade ruler make the chronology readable; each era shows its current movie count and can center that section. Correct positions earn 500 points; mistakes reveal the year and file the ticket correctly so every attempt adds knowledge.
-- The opening How to Play is a controlled interactive lesson built from the real ticket and Director components: one correct drag, one deliberate wrong drag and punch, Director completion, then free Movie and Director hint samples. Every action has a dedicated instruction strip above the board, a marked destination, or a nearby click callout—never text covering the movie tickets; afterward it becomes a compact replayable reference.
+- In Cast Call, two movie tickets stay active while one Polaroid-style actor prompt appears at a time. Correct drops file a compact cast-name tag; wrong drops reveal nothing and return that actor later after other prompts. Completing a movie stamps and replaces its ticket, and finishing all four movies reports accuracy, first tries, mistakes, best streak and Stage score.
+- Cast Call has no countdown. Base points, a first-try bonus, streak points and a deliberately small optional recognition-speed bonus reward flow without making hesitation a failure. Mouse/touch dragging, movie-ticket clicking and left/right keyboard choices all use the same locked state transition, so rapid duplicate input cannot score twice.
+- A New Run opens with a controlled How to Play lesson built from the real ticket and Director components: one correct drag, one deliberate wrong drag and punch, Director completion, then free Movie and Director hint samples. Every action has a dedicated instruction strip above the board, a marked destination, or a nearby click callout—never text covering the movie tickets; afterward it becomes a compact replayable reference.
 - Drag a movie ticket onto an active director. Every director has three visible ticket receivers that wake up during a drag; empty future director positions stay inert. A correct match scores points and coins, while a wrong match is rejected, punched, and returned to its previous position without revealing its owner.
 - Every ticket always shows its genre; the interface never labels films by whether their director is currently on the board.
 - Match all three films for a director to move that completed set into the Victory Area and free its slot.
@@ -40,7 +55,7 @@ A playful, browser-only cinema-knowledge game presented inside a responsive, vec
 - Correct matches send one coin pip per earned coin toward the bezel, then pulse the wallet in the Hint Shop; combo bonus coins are called out separately and accumulate into the same wallet.
 - Correct and wrong match feedback no longer blocks the next useful input; the larger Director archive sequence was shortened from 1.9 seconds to about 1.1 seconds.
 - The CRT treatment uses static scanlines and vignette layers rather than a continuously repainting noise animation. Smoke, Director arrivals, and coin flights use compositor-friendly transforms, and pointer movement updates only the ticket being dragged instead of rerendering the entire game.
-- Use the bezel controls to mute sound, reduce the CRT treatment, or start a fresh shuffled game.
+- Use the bezel controls to return to the main menu, mute sound, reduce the CRT treatment, or restart the current session.
 - The desktop cabinet is constrained to a complete 16:9 view, with a natural-height stacked layout on smaller screens.
 - CRT scanlines and motion are decorative only. The interface keeps readable text and focusable controls, respects `prefers-reduced-motion`, and provides an in-game CRT effects toggle.
 
@@ -71,13 +86,17 @@ npm run lint
 ## Project shape
 
 - `app/components/DirectorGame.tsx` — interactive board, CRT HUD, dragging, hints, feedback, and progression
+- `app/components/GameMenu.tsx` — CineRuckus title screen, New Run entry point, and three-mode quick-play submenu
 - `app/components/GameLoopTutorial.tsx` — controlled real-object drag lesson, wrong-answer punch, completion, free hint samples, and compact reference
 - `app/components/CompletionArchiveSequence.tsx` — three-ticket snap, punch, stack compression, and Victory Area handoff
 - `app/components/StageResultsOverlay.tsx` — animated stage score transfer, performance stats, and next-stage handoff
 - `app/components/ReleaseTimelineStage.tsx` — Stage 2 anchor selection, chronological ticket placement, scoring HUD, and results handoff
+- `app/components/CastCallGame.tsx` — Stage 3 one-at-a-time prompt flow, pointer interaction, feedback timing, replay, and results handoff
+- `app/components/CastCallCards.tsx` and `app/components/CastCallHud.tsx` — flexible Polaroid, movie target, cast progress, HUD, and results presentation
 - `app/components/ConstellationCard.tsx` — reusable movie tickets, director slots, hint stickers, and victory chips
-- `app/components/VisualHintOverlay.tsx` — shared full-screen Frame Check and Visual DNA inspection experience
+- `app/components/MovieDossierOverlay.tsx` — shared full-screen movie hint inspection experience
 - `app/data/game-engine.ts` — deterministic state transitions, fairness rules, economy, ranks, and centralized `GAME_CONFIG`
+- `app/data/cast-call-engine.ts` and `app/data/cast-call-data.ts` — deterministic Cast Call queue/scoring logic and replaceable four-film prototype content
 - `app/data/directors.ts` and `app/data/expanded-directors.ts` — local typed director and film pool
 - `app/data/director-hints.ts` — six authored, answer-safe profile clues for every director
 - `app/globals.css` — responsive CRT cabinet, screen effects, pixel-inspired UI, and motion fallbacks

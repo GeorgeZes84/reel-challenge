@@ -76,11 +76,13 @@ export function ReleaseTimelineStage({
   seed,
   onProgress,
   onComplete,
+  quickPlay = false,
 }: {
   films: readonly Film[];
   seed: string;
   onProgress: (progress: TimelineProgress) => void;
   onComplete: (result: TimelineResult) => void;
+  quickPlay?: boolean;
 }) {
   const deck = useMemo(() => {
     const unique = Array.from(new Map(films.map((film) => [film.id, film])).values());
@@ -93,7 +95,9 @@ export function ReleaseTimelineStage({
   const [correct, setCorrect] = useState(0);
   const [hoveredGap, setHoveredGap] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [message, setMessage] = useState("Choose one movie from Stage 1. Its year becomes your timeline anchor.");
+  const [message, setMessage] = useState(quickPlay
+    ? "Choose one movie. Its year becomes your timeline anchor."
+    : "Choose one movie from Stage 1. Its year becomes your timeline anchor.");
   const gapRefs = useRef(new Map<number, HTMLButtonElement>());
   const filmRefs = useRef(new Map<string, HTMLElement>());
   const dragRef = useRef<DragRecord | null>(null);
@@ -215,7 +219,13 @@ export function ReleaseTimelineStage({
   if (!anchor) {
     return (
       <div className="timeline-stage is-choosing-anchor">
-        <header className="timeline-stage-heading"><span>STAGE 2 · RELEASE TIMELINE</span><h2>Choose your starting point.</h2><p>These are movies you encountered in Stage 1. Pick one; its release year will become the first fixed point on the timeline.</p></header>
+        <header className="timeline-stage-heading">
+          <span>{quickPlay ? "GAME 02 · RELEASE TIMELINE" : "STAGE 2 · RELEASE TIMELINE"}</span>
+          <h2>Choose your starting point.</h2>
+          <p>{quickPlay
+            ? "Pick any movie; its release year will become the first fixed point on your timeline."
+            : "These are movies you encountered in Stage 1. Pick one; its release year will become the first fixed point on the timeline."}</p>
+        </header>
         <div className="timeline-anchor-options">
           {deck.anchorOptions.map((film) => (
             <div className="timeline-anchor-option" key={film.id}>
@@ -231,7 +241,7 @@ export function ReleaseTimelineStage({
 
   return (
     <div className="timeline-stage" onPointerMove={moveDragging} onPointerUp={stopDragging} onPointerCancel={cancelDragging} onLostPointerCapture={cancelDragging}>
-      <header className="timeline-stage-heading"><span>STAGE 2 · RELEASE TIMELINE</span><h2>When did it come out?</h2><p>Drag the current ticket into the correct chronological gap. A wrong placement reveals the year and files it correctly, so the timeline always teaches as it grows.</p></header>
+      <header className="timeline-stage-heading"><span>{quickPlay ? "GAME 02 · RELEASE TIMELINE" : "STAGE 2 · RELEASE TIMELINE"}</span><h2>When did it come out?</h2><p>Drag the current ticket into the correct chronological gap. A wrong placement reveals the year and files it correctly, so the timeline always teaches as it grows.</p></header>
       <nav className="timeline-decade-guide" aria-label="Jump to a decade in the movie timeline">
         <div className="timeline-decade-summary">
           <span>DECADE FINDER</span>
@@ -293,13 +303,13 @@ export function ReleaseTimelineStage({
   );
 }
 
-export function ReleaseTimelineHud({ totalScore, progress }: { totalScore: number; progress: TimelineProgress }) {
+export function ReleaseTimelineHud({ totalScore, progress, quickPlay = false }: { totalScore: number; progress: TimelineProgress; quickPlay?: boolean }) {
   const accuracy = progress.attempted === 0 ? 100 : Math.round((progress.correct / progress.attempted) * 100);
   return (
     <>
       <section className="hud-panel score-panel timeline-score-panel">
-        <div className="stage-progress-line"><strong>STAGE 2</strong><b>GLOBAL CINEMA FILE</b></div>
-        <div className="score-heading"><span className="hud-label">Total score</span><b>Stage score +{progress.score.toLocaleString("en-US")}</b></div>
+        <div className="stage-progress-line"><strong>{quickPlay ? "GAME 02" : "STAGE 2"}</strong><b>GLOBAL CINEMA FILE</b></div>
+        <div className="score-heading"><span className="hud-label">Total score</span><b>{quickPlay ? "Game" : "Stage"} score +{progress.score.toLocaleString("en-US")}</b></div>
         <div className="score-line"><strong>{(totalScore + progress.score).toLocaleString("en-US")}</strong><div className="timeline-accuracy"><span>Accuracy</span><b>{accuracy}%</b></div></div>
       </section>
       <section className="hud-panel timeline-progress-panel">
@@ -308,25 +318,39 @@ export function ReleaseTimelineHud({ totalScore, progress }: { totalScore: numbe
         <div><span>{progress.attempted} placed</span><b>{progress.total - progress.attempted} remaining</b></div>
       </section>
       <section className="hud-panel timeline-rules-panel">
-        <span className="hud-label">How this Stage works</span>
-        <ol><li>Choose an anchor from Stage 1.</li><li>Place each hidden-date ticket chronologically.</li><li>Earn {TIMELINE_POINTS_PER_CORRECT} points for every correct position.</li></ol>
-        <small>Incorrect dates are revealed and filed automatically. Your run continues either way.</small>
+        <span className="hud-label">How this {quickPlay ? "game" : "Stage"} works</span>
+        <ol><li>{quickPlay ? "Choose a movie as your anchor." : "Choose an anchor from Stage 1."}</li><li>Place each hidden-date ticket chronologically.</li><li>Earn {TIMELINE_POINTS_PER_CORRECT} points for every correct position.</li></ol>
+        <small>Incorrect dates are revealed and filed automatically. {quickPlay ? "You can play again from the results." : "Your run continues either way."}</small>
       </section>
     </>
   );
 }
 
-export function ReleaseTimelineResults({ result, totalScore, onContinue }: { result: TimelineResult; totalScore: number; onContinue: () => void }) {
+export function ReleaseTimelineResults({
+  result,
+  totalScore,
+  onContinue,
+  quickPlay = false,
+  onReplay,
+  onSelectGame,
+}: {
+  result: TimelineResult;
+  totalScore: number;
+  onContinue: () => void;
+  quickPlay?: boolean;
+  onReplay?: () => void;
+  onSelectGame?: () => void;
+}) {
   const accuracy = result.total === 0 ? 100 : Math.round((result.correct / result.total) * 100);
   return (
     <div className="screen-overlay stage-results-overlay timeline-results-overlay" role="dialog" aria-modal="true" aria-labelledby="timeline-results-title">
-      <p>Stage 2 complete · Release timeline</p>
+      <p>{quickPlay ? "Game 02 complete · Release timeline" : "Stage 2 complete · Release timeline"}</p>
       <h2 id="timeline-results-title">Your cinema timeline is filed.</h2>
       <div className="stage-score-transfer">
-        <div><span>Timeline score</span><strong>+{result.score.toLocaleString("en-US")}</strong></div>
+        <div><span>{quickPlay ? "Game score" : "Timeline score"}</span><strong>+{result.score.toLocaleString("en-US")}</strong></div>
         <i aria-hidden="true">→</i>
         <div><span>Total score</span><strong>{totalScore.toLocaleString("en-US")}</strong></div>
-        <small>Stage 1 total: {(totalScore - result.score).toLocaleString("en-US")}</small>
+        <small>{quickPlay ? "Quick Play score · ready for another take" : `Stage 1 total: ${(totalScore - result.score).toLocaleString("en-US")}`}</small>
       </div>
       <div className="stage-results-grid">
         <div><span>Correct placements</span><strong>{result.correct}/{result.total}</strong></div>
@@ -334,8 +358,13 @@ export function ReleaseTimelineResults({ result, totalScore, onContinue }: { res
         <div><span>Anchor</span><strong>{result.anchorTitle}</strong></div>
         <div><span>Timeline span</span><strong>{result.earliestYear}–{result.latestYear}</strong></div>
       </div>
-      <button type="button" className="primary-pixel-button" onClick={onContinue}>Continue to Stage 3</button>
-      <small className="stage-continue-note">Your total score carries forward into the next game mode.</small>
+      {quickPlay ? (
+        <div className="cast-call-result-actions">
+          {onReplay ? <button type="button" className="primary-pixel-button" onClick={onReplay}>Play again</button> : null}
+          {onSelectGame ? <button type="button" className="secondary-pixel-button" onClick={onSelectGame}>Select another game</button> : null}
+        </div>
+      ) : <button type="button" className="primary-pixel-button" onClick={onContinue}>Continue to Stage 3</button>}
+      <small className="stage-continue-note">{quickPlay ? "Replay this challenge or choose another movie game." : "Your total score carries forward into the next game mode."}</small>
     </div>
   );
 }

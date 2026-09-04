@@ -14,6 +14,7 @@ import { GENRE_LEGEND } from "../data/genre-colors";
 import {
   GAME_CONFIG,
   attemptAssignment,
+  completeCastCallStage,
   completeTimelineStage,
   createInitialGame,
   currentRank,
@@ -25,6 +26,10 @@ import {
   type DirectorHintReveal,
   type HintType,
 } from "../data/game-engine";
+import { CAST_CALL_MOVIES } from "../data/cast-call-data";
+import type { CastCallProgress, CastCallResult } from "../data/cast-call-engine";
+import { CastCallGame } from "./CastCallGame";
+import { CastCallHud } from "./CastCallHud";
 import { CrtTelevision } from "./CrtTelevision";
 import {
   COIN_STAGGER_MS,
@@ -38,6 +43,13 @@ import { DirectorSlot, MovieTicket, type Position } from "./ConstellationCard";
 import { DirectorArrivalFx, type DirectorArrivalEvent } from "./DirectorArrivalFx";
 import { GameHud } from "./GameHud";
 import { GameLoopTutorial } from "./GameLoopTutorial";
+import {
+  GAME_TITLE,
+  GameMenu,
+  GameMenuConsole,
+  type GameMenuView,
+  type GameSelection,
+} from "./GameMenu";
 import { RankPopup } from "./RankPopup";
 import { StageResultsOverlay } from "./StageResultsOverlay";
 import { MovieDossierOverlay } from "./MovieDossierOverlay";
@@ -62,6 +74,19 @@ const TICKET_LAYOUT: Position[] = [
   { x: 58, y: 76, rotation: -2 },
   { x: 76, y: 73, rotation: 3.1 },
 ];
+
+const INITIAL_CAST_CALL_PROGRESS: CastCallProgress = {
+  moviesCompleted: 0,
+  moviesTotal: CAST_CALL_MOVIES.length,
+  castCompleted: 0,
+  castTotal: CAST_CALL_MOVIES.reduce((total, movie) => total + movie.cast.length, 0),
+  correct: 0,
+  incorrect: 0,
+  firstTryCorrect: 0,
+  streak: 0,
+  bestStreak: 0,
+  score: 0,
+};
 
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
@@ -99,6 +124,8 @@ const LOOKUPS = makeLookupMaps();
 export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const lookups = LOOKUPS;
   const [game, setGame] = useState(() => createInitialGame(directors, initialSeed));
+  const [menuView, setMenuView] = useState<GameMenuView | null>("home");
+  const [quickPlayMode, setQuickPlayMode] = useState<GameSelection | null>(null);
   const [positions, setPositions] = useState<Record<string, Position>>(() => initialPositions(game.visibleMovieIds));
   const [ticketSlots, setTicketSlots] = useState<Record<string, number>>(() => initialTicketSlots(game.visibleMovieIds));
   const [draggingFilmId, setDraggingFilmId] = useState<string | null>(null);
@@ -120,11 +147,12 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [archiveSequence, setArchiveSequence] = useState<ArchiveSequence>(null);
   const [scoreBurst, setScoreBurst] = useState<string | null>(null);
   const [coinRewards, setCoinRewards] = useState<CoinRewardEvent[]>([]);
-  const [showHelp, setShowHelp] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
   const [stageAnnouncement, setStageAnnouncement] = useState<number | null>(null);
   const [timelineProgress, setTimelineProgress] = useState<TimelineProgress>({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
   const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
+  const [castCallProgress, setCastCallProgress] = useState<CastCallProgress>(INITIAL_CAST_CALL_PROGRESS);
   const [actionLocked, setActionLocked] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [crtEnabled, setCrtEnabled] = useState(true);
@@ -224,7 +252,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [showHelp, dossierFilmId]);
 
-  const playSound = (cue: "pick" | "correct" | "wrong" | "hint" | "punch" | "complete" | "spawn" | "coin") => {
+  const playSound = (cue: "flash" | "pick" | "correct" | "wrong" | "hint" | "punch" | "complete" | "spawn" | "coin") => {
     if (!soundEnabled || typeof window === "undefined") return;
     const context = audioContextRef.current ?? new AudioContext();
     audioContextRef.current = context;
@@ -233,6 +261,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const notes = {
+      flash: [1180, 620, 0.055],
       pick: [220, 280, 0.06],
       correct: [520, 880, 0.18],
       wrong: [150, 78, 0.22],
@@ -243,7 +272,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       coin: [680, 1120, 0.07],
     } as const;
     const [from, to, duration] = notes[cue];
-    oscillator.type = cue === "wrong" ? "sawtooth" : cue === "complete" || cue === "punch" ? "square" : "triangle";
+    oscillator.type = cue === "wrong" ? "sawtooth" : cue === "complete" || cue === "punch" || cue === "flash" ? "square" : "triangle";
     oscillator.frequency.setValueAtTime(from, now);
     oscillator.frequency.exponentialRampToValueAtTime(to, now + duration);
     gain.gain.setValueAtTime(0.0001, now);
@@ -264,6 +293,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const dossierRuntime = dossierFilmId ? game.movies[dossierFilmId] ?? null : null;
   const isCleanup = game.stagePhase === "cleanup";
   const isTimelineStage = game.stageNumber === 2;
+  const isCastCallStage = game.stageNumber === 3;
+  const isDirectorStage = !isTimelineStage && !isCastCallStage;
   const timelineFilms = useMemo(() => {
     const stageOneIds = new Set(game.runDirectorIds.slice(0, GAME_CONFIG.stageDirectorCount));
     const completedFilmIds = game.victoryDirectors
@@ -693,14 +724,23 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     playSound("hint");
   };
 
-  const newGame = () => {
+  const prepareGameSession = (
+    next: ReturnType<typeof createInitialGame>,
+    options: {
+      quickPlay: GameSelection | null;
+      showTutorial: boolean;
+      message: string;
+      announce: boolean;
+    },
+  ) => {
     timersRef.current.forEach((timer) => window.clearTimeout(timer));
     timersRef.current = [];
-    const seed = crypto.randomUUID();
-    const fresh = createInitialGame(directors, seed);
-    setGame(fresh);
-    setPositions(initialPositions(fresh.visibleMovieIds));
-    setTicketSlots(initialTicketSlots(fresh.visibleMovieIds));
+    dragRef.current = null;
+    didMoveRef.current = false;
+    hoveredDirectorRef.current = null;
+    setGame(next);
+    setPositions(initialPositions(next.visibleMovieIds));
+    setTicketSlots(initialTicketSlots(next.visibleMovieIds));
     setDraggingFilmId(null);
     setHoveredDirectorId(null);
     setSelectedFilmId(null);
@@ -712,24 +752,84 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setOpenDirectorHintKey(null);
     setHintRescueVisible(false);
     setRejectedFilmId(null);
-    setSpawningMovieIds(fresh.visibleMovieIds);
+    setSpawningMovieIds(next.stageNumber === 1 ? next.visibleMovieIds : []);
     setSpawningDirectorId(null);
+    setDirectorArrival(null);
     setDirectorFeedback(null);
     setRankToast(null);
     setArchiveSequence(null);
     setScoreBurst(null);
     setCoinRewards([]);
-    setShowHelp(false);
+    setShowHelp(options.showTutorial);
     setStageAnnouncement(null);
     setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
     setTimelineResult(null);
+    setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
     lastAnnouncedStageRef.current = 0;
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = 0;
-    setHudMessage("Fresh tape, fresh cast. Two directors are live.");
-    announceStage(1);
-    schedule(() => setSpawningMovieIds([]), 520);
+    setQuickPlayMode(options.quickPlay);
+    setMenuView(null);
+    setHudMessage(options.message);
+    if (options.announce) announceStage(next.stageNumber);
+    if (next.stageNumber === 1) schedule(() => setSpawningMovieIds([]), 520);
+  };
+
+  const launchNewRun = () => {
+    const fresh = createInitialGame(directors, crypto.randomUUID());
+    const showTutorial = !tutorialCompleted;
+    prepareGameSession(fresh, {
+      quickPlay: null,
+      showTutorial,
+      message: "Fresh tape, fresh cast. Two directors are live.",
+      announce: !showTutorial,
+    });
+  };
+
+  const launchSelectedGame = (selection: GameSelection) => {
+    const fresh = createInitialGame(directors, crypto.randomUUID());
+    const stageTwo = selection === "director" ? null : startNextStage({ ...fresh, status: "stage_complete" });
+    const next = selection === "director"
+      ? fresh
+      : selection === "timeline"
+        ? stageTwo!
+        : startNextStage(completeTimelineStage(stageTwo!, { score: 0, correct: 0, attempted: 0 }));
+    const messages = {
+      director: "Quick Play · Match every movie ticket to its Director.",
+      timeline: "Quick Play · Build a release timeline from global cinema.",
+      "cast-call": "Quick Play · One actor, two movies, no countdown.",
+    } as const;
+    prepareGameSession(next, {
+      quickPlay: selection,
+      showTutorial: false,
+      message: messages[selection],
+      announce: false,
+    });
+  };
+
+  const openMainMenu = () => {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer));
+    timersRef.current = [];
+    dragRef.current = null;
+    setDraggingFilmId(null);
+    setHoveredDirectorId(null);
+    setDossierFilmId(null);
+    setShowHelp(false);
+    setStageAnnouncement(null);
+    setDirectorArrival(null);
+    setMenuView("home");
+  };
+
+  const openGameSelect = () => {
+    setDossierFilmId(null);
+    setShowHelp(false);
+    setMenuView("select");
+  };
+
+  const restartCurrentSession = () => {
+    if (quickPlayMode) launchSelectedGame(quickPlayMode);
+    else launchNewRun();
   };
 
   const continueStage = () => {
@@ -758,13 +858,16 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setCoinRewards([]);
     setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
     setTimelineResult(null);
+    setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = next.moveCount;
     setHudMessage(next.status === "playing"
       ? next.stageNumber === 2
         ? "Stage 2. Build a release timeline from the movies you just cleared."
-        : `Stage ${next.stageNumber}. New directors, same high-score run.`
+        : next.stageNumber === 3
+          ? "Stage 3. One actor at a time—cast each photo into the right picture."
+          : `Stage ${next.stageNumber}. New directors, same high-score run.`
       : "Every available director is archived.");
     if (next.status === "playing") {
       announceStage(next.stageNumber);
@@ -779,8 +882,50 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setHudMessage(`Release timeline complete. ${result.correct} of ${result.total} placements correct.`);
   };
 
-  const consoleContent = isTimelineStage ? (
-    <ReleaseTimelineHud totalScore={game.stageStartScore} progress={timelineProgress} />
+  const continueAfterCastCall = (result: CastCallResult) => {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer));
+    timersRef.current = [];
+    const completed = completeCastCallStage(game, result);
+    const next = startNextStage(completed);
+    setGame(next);
+    setPositions(initialPositions(next.visibleMovieIds));
+    setTicketSlots(initialTicketSlots(next.visibleMovieIds));
+    setDraggingFilmId(null);
+    setHoveredDirectorId(null);
+    setSelectedFilmId(null);
+    setHintContextFilmId(null);
+    setHintContextDirectorId(null);
+    setAutoOpenHint(null);
+    setDossierFilmId(null);
+    setOpenDirectorHintKey(null);
+    setHintRescueVisible(false);
+    setRejectedFilmId(null);
+    setSpawningMovieIds(next.visibleMovieIds);
+    setSpawningDirectorId(null);
+    setDirectorFeedback(null);
+    setRankToast(null);
+    setArchiveSequence(null);
+    setScoreBurst(null);
+    setCoinRewards([]);
+    setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
+    setTimelineResult(null);
+    setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
+    setActionLocked(false);
+    wrongStreakRef.current = 0;
+    hintRescueCooldownMoveRef.current = next.moveCount;
+    setHudMessage(next.status === "playing" ? `Stage ${next.stageNumber}. New challenge, same high-score run.` : "Every available Stage is complete.");
+    if (next.status === "playing") {
+      announceStage(next.stageNumber);
+      schedule(() => setSpawningMovieIds([]), 520);
+    }
+  };
+
+  const consoleContent = menuView ? (
+    <GameMenuConsole view={menuView} />
+  ) : isTimelineStage ? (
+    <ReleaseTimelineHud totalScore={game.stageStartScore} progress={timelineProgress} quickPlay={quickPlayMode === "timeline"} />
+  ) : isCastCallStage ? (
+    <CastCallHud totalScore={game.stageStartScore} progress={castCallProgress} quickPlay={quickPlayMode === "cast-call"} />
   ) : (
     <GameHud
       game={game}
@@ -804,10 +949,15 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
   const controls = (
     <>
-      <button type="button" onClick={() => setShowHelp(true)}><span aria-hidden="true">?</span> How to play</button>
+      {!menuView ? <button type="button" onClick={openMainMenu}><span aria-hidden="true">⌂</span> Main menu</button> : null}
+      {!menuView && isDirectorStage ? (
+        <button type="button" onClick={() => setShowHelp(true)}><span aria-hidden="true">?</span> How to play</button>
+      ) : !menuView ? (
+        <button type="button" onClick={() => setHudMessage(isTimelineStage ? "Place each hidden-date ticket before, between, or after the dated movies." : "Drag the current actor Polaroid to either movie ticket. Wrong actors return later.")}><span aria-hidden="true">?</span> Game guide</button>
+      ) : null}
       <button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((enabled) => !enabled)}><span aria-hidden="true">♪</span> Sound {soundEnabled ? "on" : "off"}</button>
       <button type="button" aria-pressed={crtEnabled} onClick={() => setCrtEnabled((enabled) => !enabled)}><span aria-hidden="true">▥</span> CRT FX {crtEnabled ? "on" : "off"}</button>
-      <button type="button" onClick={newGame}><span aria-hidden="true">↻</span> New signal</button>
+      {!menuView ? <button type="button" onClick={restartCurrentSession}><span aria-hidden="true">↻</span> {quickPlayMode ? "Restart game" : "New run"}</button> : null}
     </>
   );
 
@@ -815,34 +965,62 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
   return (
     <>
-      <DirectorArrivalFx event={directorArrival} />
+      <DirectorArrivalFx event={menuView ? null : directorArrival} />
       <CrtTelevision
-      crtEnabled={crtEnabled}
-      console={consoleContent}
-      controls={controls}
-      screenSticker={(
-        <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
-          <strong>Genre key</strong>
-          <div>
-            {GENRE_LEGEND.map(({ genre, color }) => (
-              <span key={genre}>
-                <i style={{ "--genre-color": color } as CSSProperties} aria-hidden="true" />
-                {genre}
-              </span>
-            ))}
+        title={GAME_TITLE}
+        crtEnabled={crtEnabled}
+        console={consoleContent}
+        controls={controls}
+        screenSticker={menuView ? (
+          <div className="menu-screen-sticker" aria-label="CineRuckus: three movie games are online">
+            <strong>MOVIE NIGHT</strong><span>3 GAMES ONLINE</span><i aria-hidden="true">★</i><span>MORE IN PRODUCTION</span>
           </div>
-        </div>
-      )}
-      status={game.status === "playing" ? hudMessage : game.status === "stage_complete" ? `Stage ${game.stageNumber} complete · results ready` : game.status === "won" ? "Archive complete · final results ready" : "Signal overload · final results ready"}
-    >
-      <section
-        className={`director-board-screen pressure-${isTimelineStage ? 1 : Math.min(GAME_CONFIG.maximumActiveDirectors, Math.max(1, game.activeDirectorIds.length))} ${isTimelineStage ? "mode-timeline" : ""} ${draggingFilmId ? "is-dragging" : ""} ${isCleanup && !isTimelineStage ? "is-cleanup" : ""}`}
+        ) : isCastCallStage ? (
+          <div className="cast-call-screen-sticker" aria-label="Cast Call: one actor, two movies, no timer">
+            <strong>CASTING DESK</strong><span>ONE ACTOR</span><i aria-hidden="true">◆</i><span>TWO MOVIES</span><i aria-hidden="true">◆</i><span>NO TIMER</span>
+          </div>
+        ) : (
+          <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
+            <strong>Genre key</strong>
+            <div>
+              {GENRE_LEGEND.map(({ genre, color }) => (
+                <span key={genre}>
+                  <i style={{ "--genre-color": color } as CSSProperties} aria-hidden="true" />
+                  {genre}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        status={menuView === "home"
+          ? "Movie night, game on. Start a run or pick one game."
+          : menuView === "select"
+            ? "Quick Play library · choose any game with a fresh score."
+            : game.status === "playing"
+              ? hudMessage
+              : game.status === "stage_complete"
+                ? `${quickPlayMode ? "Game" : "Stage"} ${game.stageNumber} complete · results ready`
+                : game.status === "won"
+                  ? "Archive complete · final results ready"
+                  : "Signal overload · final results ready"}
+      >
+        {menuView ? (
+          <GameMenu
+            view={menuView}
+            onNewRun={launchNewRun}
+            onOpenSelect={openGameSelect}
+            onBack={openMainMenu}
+            onLaunch={launchSelectedGame}
+          />
+        ) : (
+          <section
+        className={`director-board-screen pressure-${isDirectorStage ? Math.min(GAME_CONFIG.maximumActiveDirectors, Math.max(1, game.activeDirectorIds.length)) : 1} ${isTimelineStage ? "mode-timeline" : ""} ${isCastCallStage ? "mode-cast-call" : ""} ${draggingFilmId ? "is-dragging" : ""} ${isCleanup && isDirectorStage ? "is-cleanup" : ""}`}
         ref={boardRef}
         onPointerMove={moveDragging}
         onPointerUp={stopDragging}
         onPointerCancel={cancelDragging}
         onLostPointerCapture={cancelDragging}
-        aria-label={isTimelineStage ? "Release timeline board" : "Movie sorting board"}
+        aria-label={isTimelineStage ? "Release timeline board" : isCastCallStage ? "Cast Call casting desk" : "Movie sorting board"}
       >
         <div className="screen-grid" aria-hidden="true" />
 
@@ -852,10 +1030,25 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
             seed={game.seed}
             onProgress={setTimelineProgress}
             onComplete={finishTimelineStage}
+            quickPlay={quickPlayMode === "timeline"}
           />
         ) : null}
 
-        {!isTimelineStage ? game.visibleMovieIds.map((filmId) => {
+        {isCastCallStage && game.status === "playing" ? (
+          <CastCallGame
+            movies={CAST_CALL_MOVIES}
+            seed={game.seed}
+            totalScore={game.stageStartScore}
+            onProgress={setCastCallProgress}
+            onContinue={continueAfterCastCall}
+            onSound={playSound}
+            onStatus={setHudMessage}
+            quickPlay={quickPlayMode === "cast-call"}
+            onSelectGame={openGameSelect}
+          />
+        ) : null}
+
+        {isDirectorStage ? game.visibleMovieIds.map((filmId) => {
           const film = lookups.filmsById.get(filmId);
           const runtime = game.movies[filmId];
           const position = positions[filmId];
@@ -879,7 +1072,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           );
         }) : null}
 
-        {!isTimelineStage ? <div className="director-slots" aria-label={`${game.activeDirectorIds.length} active directors in 5 slots`}>
+        {isDirectorStage ? <div className="director-slots" aria-label={`${game.activeDirectorIds.length} active directors in 5 slots`}>
           {Array.from({ length: GAME_CONFIG.maximumActiveDirectors }, (_, slotIndex) => {
             const directorId = game.directorSlots[slotIndex];
             const director = directorId ? lookups.directorsById.get(directorId) ?? null : null;
@@ -911,14 +1104,14 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           })}
         </div> : null}
 
-        {!isTimelineStage ? <CoinRewardLayer events={coinRewards} /> : null}
-        {!isTimelineStage && scoreBurst ? <div className="score-burst" aria-hidden="true">{scoreBurst}</div> : null}
-        {!isTimelineStage && archiveSequence ? <CompletionArchiveSequence directorName={archiveSequence.directorName} filmTitles={archiveSequence.filmTitles} /> : null}
-        {!isTimelineStage ? <RankPopup rank={rankToast} /> : null}
+        {isDirectorStage ? <CoinRewardLayer events={coinRewards} /> : null}
+        {isDirectorStage && scoreBurst ? <div className="score-burst" aria-hidden="true">{scoreBurst}</div> : null}
+        {isDirectorStage && archiveSequence ? <CompletionArchiveSequence directorName={archiveSequence.directorName} filmTitles={archiveSequence.filmTitles} /> : null}
+        {isDirectorStage ? <RankPopup rank={rankToast} /> : null}
 
         {stageAnnouncement ? (
           <div className="stage-start-announcement" role="status" aria-live="polite" aria-atomic="true">
-            <span>Continuing run</span><strong>STAGE {stageAnnouncement}</strong><small>{stageAnnouncement === 2 ? "New mode · Build a release timeline" : "Clear every Director · Total score carries forward"}</small>
+            <span>Continuing run</span><strong>STAGE {stageAnnouncement}</strong><small>{stageAnnouncement === 2 ? "New mode · Build a release timeline" : stageAnnouncement === 3 ? "New mode · Match actors to movies" : "Clear every Director · Total score carries forward"}</small>
           </div>
         ) : null}
 
@@ -931,12 +1124,29 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           />
         ) : null}
 
-        {showHelp ? (
+        {showHelp && isDirectorStage ? (
           <GameLoopTutorial onClose={closeHelp} onComplete={() => setTutorialCompleted(true)} startInReference={tutorialCompleted} />
         ) : null}
 
-        {game.status === "stage_complete" && isTimelineStage && timelineResult ? <ReleaseTimelineResults result={timelineResult} totalScore={game.score} onContinue={continueStage} /> : null}
-        {game.status === "stage_complete" && !isTimelineStage ? <StageResultsOverlay game={game} onContinue={continueStage} /> : null}
+        {game.status === "stage_complete" && isTimelineStage && timelineResult ? (
+          <ReleaseTimelineResults
+            result={timelineResult}
+            totalScore={game.score}
+            onContinue={continueStage}
+            quickPlay={quickPlayMode === "timeline"}
+            onReplay={restartCurrentSession}
+            onSelectGame={openGameSelect}
+          />
+        ) : null}
+        {game.status === "stage_complete" && isDirectorStage ? (
+          <StageResultsOverlay
+            game={game}
+            onContinue={continueStage}
+            quickPlay={quickPlayMode === "director"}
+            onReplay={restartCurrentSession}
+            onSelectGame={openGameSelect}
+          />
+        ) : null}
 
         {game.status === "won" || game.status === "lost" ? (
           <div className={`screen-overlay results-overlay is-${game.status}`} role="dialog" aria-modal="true" aria-labelledby="result-title">
@@ -955,10 +1165,11 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
               <div><span>Hints spent</span><strong>{game.coinsSpent}●</strong></div>
               <div><span>Coins left</span><strong>{game.coins}●</strong></div>
             </div>
-            <button type="button" className="primary-pixel-button" onClick={newGame}>Play another tape</button>
+            <button type="button" className="primary-pixel-button" onClick={launchNewRun}>Play another tape</button>
           </div>
         ) : null}
-      </section>
+          </section>
+        )}
       </CrtTelevision>
     </>
   );
