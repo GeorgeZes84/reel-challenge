@@ -9,19 +9,23 @@ CineRuckus is a playful, browser-only collection of cinema games presented insid
 - **New Run** starts the full CineRuckus lineup from the beginning, preserving score and progress as each game hands off to the next.
 - **Select Game** opens a quick-play submenu so a mode can be launched immediately with a fresh score, without clearing the earlier games first.
 
-The current quick-play lineup has three games:
+The current quick-play lineup has four games:
 
 1. **Find the Director** — match movie tickets to the filmmaker behind them.
 2. **Release Timeline** — arrange films in chronological order.
 3. **Cast Call** — match actors to the movies where they belong.
+4. **Cinema Map** — place landmark films on their countries of origin.
 
 ## Game loop
 
 - A run begins with two active directors and exactly ten visible film tickets.
-- Stage 1 is the Director matching game. Stage 2 turns the movies just cleared into a Release Timeline minigame. Stage 3 is Cast Call, a fast actor-to-movie sorting game; later Stage modes remain intentionally open for future design.
+- Stage 1 is the Director matching game. Stage 2 turns the movies just cleared into a Release Timeline minigame. Stage 3 is Cast Call, a fast actor-to-movie sorting game. Stage 4 is Cinema Map, a world-cinema geography game; later Stage modes remain intentionally open for future design.
 - In the Release Timeline, choose one familiar Stage 1 movie as the dated anchor, then place seven hidden-date tickets before, between, or after the growing chronology. Large ticket years and a live decade ruler make the chronology readable; each era shows its current movie count and can center that section. Correct positions earn 500 points; mistakes reveal the year and file the ticket correctly so every attempt adds knowledge.
 - In Cast Call, two movie tickets stay active while one Polaroid-style actor prompt appears at a time. Correct drops file a compact cast-name tag; wrong drops reveal nothing and return that actor later after other prompts. Completing a movie stamps and replaces its ticket, and finishing all four movies reports accuracy, first tries, mistakes, best streak and Stage score.
 - Cast Call has no countdown. Base points, a first-try bonus, streak points and a deliberately small optional recognition-speed bonus reward flow without making hesitation a failure. Mouse/touch dragging, movie-ticket clicking and left/right keyboard choices all use the same locked state transition, so rapid duplicate input cannot score twice.
+- Cinema Map presents eight movie tickets one at a time on an interactive vector world map. Players can wheel/pinch to zoom, pan with pointer or touch, jump to a named region, restore World View, drag a ticket onto a country, tap the country directly, or use the secondary searchable country control.
+- Country shapes use stable normalized ISO identifiers. Exact country geometry wins first; after regional zoom, selected small countries gain nearest-centroid snapping so a correct idea is not lost to pixel hunting. Three misses reveal and file the route, while first-attempt placements, streaks and retry-aware scoring feed the shared run total.
+- Every resolved route leaves a compact cinema marker on the map. Results preserve that visual memory in a highlighted “Your Cinema Journey” map, with placed movies, first tries, mistakes, accuracy, best streak and revealed routes.
 - A New Run opens with a controlled How to Play lesson built from the real ticket and Director components: one correct drag, one deliberate wrong drag and punch, Director completion, then free Movie and Director hint samples. Every action has a dedicated instruction strip above the board, a marked destination, or a nearby click callout—never text covering the movie tickets; afterward it becomes a compact replayable reference.
 - Drag a movie ticket onto an active director. Every director has three visible ticket receivers that wake up during a drag; empty future director positions stay inert. A correct match scores points and coins, while a wrong match is rejected, punched, and returned to its previous position without revealing its owner.
 - Every ticket always shows its genre; the interface never labels films by whether their director is currently on the board.
@@ -86,20 +90,36 @@ npm run lint
 ## Project shape
 
 - `app/components/DirectorGame.tsx` — interactive board, CRT HUD, dragging, hints, feedback, and progression
-- `app/components/GameMenu.tsx` — CineRuckus title screen, New Run entry point, and three-mode quick-play submenu
+- `app/components/GameMenu.tsx` — CineRuckus title screen, New Run entry point, and four-mode quick-play submenu
 - `app/components/GameLoopTutorial.tsx` — controlled real-object drag lesson, wrong-answer punch, completion, free hint samples, and compact reference
 - `app/components/CompletionArchiveSequence.tsx` — three-ticket snap, punch, stack compression, and Victory Area handoff
 - `app/components/StageResultsOverlay.tsx` — animated stage score transfer, performance stats, and next-stage handoff
 - `app/components/ReleaseTimelineStage.tsx` — Stage 2 anchor selection, chronological ticket placement, scoring HUD, and results handoff
 - `app/components/CastCallGame.tsx` — Stage 3 one-at-a-time prompt flow, pointer interaction, feedback timing, replay, and results handoff
 - `app/components/CastCallCards.tsx` and `app/components/CastCallHud.tsx` — flexible Polaroid, movie target, cast progress, HUD, and results presentation
+- `app/components/CinemaMapGame.tsx`, `app/components/CinemaWorldMap.tsx`, and `app/components/MovieGeoTicket.tsx` — Stage 4 flow, vector map gestures/hit testing, journey markers, and physical ticket interaction
+- `app/components/CinemaMapProgressHud.tsx` — lightweight Cinema Map console progress outside the lazy map bundle
+- `app/components/CinemaMapHud.tsx` — end-of-round journey report inside the lazy map bundle
 - `app/components/ConstellationCard.tsx` — reusable movie tickets, director slots, hint stickers, and victory chips
 - `app/components/MovieDossierOverlay.tsx` — shared full-screen movie hint inspection experience
 - `app/data/game-engine.ts` — deterministic state transitions, fairness rules, economy, ranks, and centralized `GAME_CONFIG`
 - `app/data/cast-call-engine.ts` and `app/data/cast-call-data.ts` — deterministic Cast Call queue/scoring logic and replaceable four-film prototype content
+- `app/data/cinema-map-engine.ts`, `app/data/cinema-map-data.ts`, and `app/data/cinema-map-viewport.ts` — deterministic country validation/scoring, curated eight-film content, and pure map-transform helpers
+- `app/data/cinema-map-assets.json` — replaceable 2:3 movie-image requirements; the prototype intentionally uses safe CSS placeholders
+- `app/data/world-map-countries.json` — preprocessed local SVG paths and centroids generated by `scripts/build-cinema-map-data.mjs`
 - `app/data/directors.ts` and `app/data/expanded-directors.ts` — local typed director and film pool
 - `app/data/director-hints.ts` — six authored, answer-safe profile clues for every director
 - `app/globals.css` — responsive CRT cabinet, screen effects, pixel-inspired UI, and motion fallbacks
 - `tests/` — game-engine and rendered-interface checks
 
 Edit `GAME_CONFIG` in `app/data/game-engine.ts` to tune stage size, director capacity, ticket count, arrival timing, combo thresholds, rewards, and hint prices. All content and run state remain local to the browser: there is no backend, database, login, persistence, or runtime data API.
+
+## Map data
+
+Cinema Map uses **Natural Earth 1:50m Admin-0 Countries and Tiny Country Points, version 5.1.2**, pinned to the published release revision and preprocessed into an equirectangular SVG dataset. Natural Earth data is public domain and does not require attribution; provenance is retained here and in the generated manifest. Natural Earth depicts de-facto boundaries by default. Regenerate the local payload with:
+
+```bash
+node scripts/build-cinema-map-data.mjs
+```
+
+Source: [Natural Earth 1:50m Cultural Vectors](https://www.naturalearthdata.com/downloads/50m-cultural-vectors/) · [Terms of Use](https://www.naturalearthdata.com/about/terms-of-use/)

@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -15,6 +17,7 @@ import {
   GAME_CONFIG,
   attemptAssignment,
   completeCastCallStage,
+  completeCinemaMapStage,
   completeTimelineStage,
   createInitialGame,
   currentRank,
@@ -28,8 +31,11 @@ import {
 } from "../data/game-engine";
 import { CAST_CALL_MOVIES } from "../data/cast-call-data";
 import type { CastCallProgress, CastCallResult } from "../data/cast-call-engine";
+import { CINEMA_MAP_MOVIES } from "../data/cinema-map-data";
+import type { CinemaMapProgress, CinemaMapResult } from "../data/cinema-map-engine";
 import { CastCallGame } from "./CastCallGame";
 import { CastCallHud } from "./CastCallHud";
+import { CinemaMapProgressHud } from "./CinemaMapProgressHud";
 import { CrtTelevision } from "./CrtTelevision";
 import {
   COIN_STAGGER_MS,
@@ -88,6 +94,17 @@ const INITIAL_CAST_CALL_PROGRESS: CastCallProgress = {
   score: 0,
 };
 
+const INITIAL_CINEMA_MAP_PROGRESS: CinemaMapProgress = {
+  moviesPlaced: 0,
+  moviesTotal: CINEMA_MAP_MOVIES.length,
+  correct: 0,
+  incorrect: 0,
+  firstTryCorrect: 0,
+  streak: 0,
+  bestStreak: 0,
+  score: 0,
+};
+
 const clamp = (value: number, minimum: number, maximum: number) => Math.min(maximum, Math.max(minimum, value));
 
 function initialTicketSlots(movieIds: string[]) {
@@ -120,6 +137,7 @@ function makeLookupMaps() {
 }
 
 const LOOKUPS = makeLookupMaps();
+const CinemaMapGame = lazy(() => import("./CinemaMapGame").then((module) => ({ default: module.CinemaMapGame })));
 
 export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const lookups = LOOKUPS;
@@ -153,6 +171,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const [timelineProgress, setTimelineProgress] = useState<TimelineProgress>({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
   const [timelineResult, setTimelineResult] = useState<TimelineResult | null>(null);
   const [castCallProgress, setCastCallProgress] = useState<CastCallProgress>(INITIAL_CAST_CALL_PROGRESS);
+  const [cinemaMapProgress, setCinemaMapProgress] = useState<CinemaMapProgress>(INITIAL_CINEMA_MAP_PROGRESS);
   const [actionLocked, setActionLocked] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [crtEnabled, setCrtEnabled] = useState(true);
@@ -294,7 +313,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const isCleanup = game.stagePhase === "cleanup";
   const isTimelineStage = game.stageNumber === 2;
   const isCastCallStage = game.stageNumber === 3;
-  const isDirectorStage = !isTimelineStage && !isCastCallStage;
+  const isCinemaMapStage = game.stageNumber === 4;
+  const isDirectorStage = !isTimelineStage && !isCastCallStage && !isCinemaMapStage;
   const timelineFilms = useMemo(() => {
     const stageOneIds = new Set(game.runDirectorIds.slice(0, GAME_CONFIG.stageDirectorCount));
     const completedFilmIds = game.victoryDirectors
@@ -765,6 +785,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
     setTimelineResult(null);
     setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
+    setCinemaMapProgress(INITIAL_CINEMA_MAP_PROGRESS);
     lastAnnouncedStageRef.current = 0;
     setActionLocked(false);
     wrongStreakRef.current = 0;
@@ -790,15 +811,21 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
   const launchSelectedGame = (selection: GameSelection) => {
     const fresh = createInitialGame(directors, crypto.randomUUID());
     const stageTwo = selection === "director" ? null : startNextStage({ ...fresh, status: "stage_complete" });
+    const stageThree = selection === "cast-call" || selection === "cinema-map"
+      ? startNextStage(completeTimelineStage(stageTwo!, { score: 0, correct: 0, attempted: 0 }))
+      : null;
     const next = selection === "director"
       ? fresh
       : selection === "timeline"
         ? stageTwo!
-        : startNextStage(completeTimelineStage(stageTwo!, { score: 0, correct: 0, attempted: 0 }));
+        : selection === "cast-call"
+          ? stageThree!
+          : startNextStage(completeCastCallStage(stageThree!, { score: 0, correct: 0, incorrect: 0, bestStreak: 0 }));
     const messages = {
       director: "Quick Play · Match every movie ticket to its Director.",
       timeline: "Quick Play · Build a release timeline from global cinema.",
       "cast-call": "Quick Play · One actor, two movies, no countdown.",
+      "cinema-map": "Quick Play · Stamp landmark films onto the world map.",
     } as const;
     prepareGameSession(next, {
       quickPlay: selection,
@@ -859,6 +886,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
     setTimelineResult(null);
     setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
+    setCinemaMapProgress(INITIAL_CINEMA_MAP_PROGRESS);
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = next.moveCount;
@@ -867,7 +895,9 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         ? "Stage 2. Build a release timeline from the movies you just cleared."
         : next.stageNumber === 3
           ? "Stage 3. One actor at a time—cast each photo into the right picture."
-          : `Stage ${next.stageNumber}. New directors, same high-score run.`
+          : next.stageNumber === 4
+            ? "Stage 4. Explore the world and stamp each movie onto its country of origin."
+            : `Stage ${next.stageNumber}. New directors, same high-score run.`
       : "Every available director is archived.");
     if (next.status === "playing") {
       announceStage(next.stageNumber);
@@ -910,10 +940,50 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
     setTimelineResult(null);
     setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
+    setCinemaMapProgress(INITIAL_CINEMA_MAP_PROGRESS);
     setActionLocked(false);
     wrongStreakRef.current = 0;
     hintRescueCooldownMoveRef.current = next.moveCount;
     setHudMessage(next.status === "playing" ? `Stage ${next.stageNumber}. New challenge, same high-score run.` : "Every available Stage is complete.");
+    if (next.status === "playing") {
+      announceStage(next.stageNumber);
+      schedule(() => setSpawningMovieIds([]), 520);
+    }
+  };
+
+  const continueAfterCinemaMap = (result: CinemaMapResult) => {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer));
+    timersRef.current = [];
+    const completed = completeCinemaMapStage(game, result);
+    const next = startNextStage(completed);
+    setGame(next);
+    setPositions(initialPositions(next.visibleMovieIds));
+    setTicketSlots(initialTicketSlots(next.visibleMovieIds));
+    setDraggingFilmId(null);
+    setHoveredDirectorId(null);
+    setSelectedFilmId(null);
+    setHintContextFilmId(null);
+    setHintContextDirectorId(null);
+    setAutoOpenHint(null);
+    setDossierFilmId(null);
+    setOpenDirectorHintKey(null);
+    setHintRescueVisible(false);
+    setRejectedFilmId(null);
+    setSpawningMovieIds(next.visibleMovieIds);
+    setSpawningDirectorId(null);
+    setDirectorFeedback(null);
+    setRankToast(null);
+    setArchiveSequence(null);
+    setScoreBurst(null);
+    setCoinRewards([]);
+    setTimelineProgress({ attempted: 0, correct: 0, score: 0, total: TIMELINE_CARD_COUNT });
+    setTimelineResult(null);
+    setCastCallProgress(INITIAL_CAST_CALL_PROGRESS);
+    setCinemaMapProgress(INITIAL_CINEMA_MAP_PROGRESS);
+    setActionLocked(false);
+    wrongStreakRef.current = 0;
+    hintRescueCooldownMoveRef.current = next.moveCount;
+    setHudMessage(next.status === "playing" ? `Stage ${next.stageNumber}. New directors, same high-score run.` : "Every available Stage is complete.");
     if (next.status === "playing") {
       announceStage(next.stageNumber);
       schedule(() => setSpawningMovieIds([]), 520);
@@ -926,6 +996,8 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
     <ReleaseTimelineHud totalScore={game.stageStartScore} progress={timelineProgress} quickPlay={quickPlayMode === "timeline"} />
   ) : isCastCallStage ? (
     <CastCallHud totalScore={game.stageStartScore} progress={castCallProgress} quickPlay={quickPlayMode === "cast-call"} />
+  ) : isCinemaMapStage ? (
+    <CinemaMapProgressHud totalScore={game.stageStartScore} progress={cinemaMapProgress} quickPlay={quickPlayMode === "cinema-map"} />
   ) : (
     <GameHud
       game={game}
@@ -953,7 +1025,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
       {!menuView && isDirectorStage ? (
         <button type="button" onClick={() => setShowHelp(true)}><span aria-hidden="true">?</span> How to play</button>
       ) : !menuView ? (
-        <button type="button" onClick={() => setHudMessage(isTimelineStage ? "Place each hidden-date ticket before, between, or after the dated movies." : "Drag the current actor Polaroid to either movie ticket. Wrong actors return later.")}><span aria-hidden="true">?</span> Game guide</button>
+        <button type="button" onClick={() => setHudMessage(isTimelineStage ? "Place each hidden-date ticket before, between, or after the dated movies." : isCastCallStage ? "Drag the current actor Polaroid to either movie ticket. Wrong actors return later." : "Zoom into a region, then drag the ticket or tap its country of origin. Use World View to zoom back out.")}><span aria-hidden="true">?</span> Game guide</button>
       ) : null}
       <button type="button" aria-pressed={soundEnabled} onClick={() => setSoundEnabled((enabled) => !enabled)}><span aria-hidden="true">♪</span> Sound {soundEnabled ? "on" : "off"}</button>
       <button type="button" aria-pressed={crtEnabled} onClick={() => setCrtEnabled((enabled) => !enabled)}><span aria-hidden="true">▥</span> CRT FX {crtEnabled ? "on" : "off"}</button>
@@ -972,12 +1044,16 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         console={consoleContent}
         controls={controls}
         screenSticker={menuView ? (
-          <div className="menu-screen-sticker" aria-label="CineRuckus: three movie games are online">
-            <strong>MOVIE NIGHT</strong><span>3 GAMES ONLINE</span><i aria-hidden="true">★</i><span>MORE IN PRODUCTION</span>
+          <div className="menu-screen-sticker" aria-label="CineRuckus: four movie games are online">
+            <strong>MOVIE NIGHT</strong><span>4 GAMES ONLINE</span><i aria-hidden="true">★</i><span>MORE IN PRODUCTION</span>
           </div>
         ) : isCastCallStage ? (
           <div className="cast-call-screen-sticker" aria-label="Cast Call: one actor, two movies, no timer">
             <strong>CASTING DESK</strong><span>ONE ACTOR</span><i aria-hidden="true">◆</i><span>TWO MOVIES</span><i aria-hidden="true">◆</i><span>NO TIMER</span>
+          </div>
+        ) : isCinemaMapStage ? (
+          <div className="cinema-map-screen-sticker" aria-label="Cinema Map: explore, zoom, and stamp eight movie routes">
+            <strong>CINEMA MAP</strong><span>EXPLORE</span><i aria-hidden="true">✦</i><span>ZOOM</span><i aria-hidden="true">✦</i><span>STAMP</span>
           </div>
         ) : (
           <div className="genre-rule" aria-label="Color equals genre: Romance pink, Comedy yellow, Drama blue, Horror red, Sci-Fi cyan, Fantasy green, Crime and Thriller purple">
@@ -1014,13 +1090,13 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
           />
         ) : (
           <section
-        className={`director-board-screen pressure-${isDirectorStage ? Math.min(GAME_CONFIG.maximumActiveDirectors, Math.max(1, game.activeDirectorIds.length)) : 1} ${isTimelineStage ? "mode-timeline" : ""} ${isCastCallStage ? "mode-cast-call" : ""} ${draggingFilmId ? "is-dragging" : ""} ${isCleanup && isDirectorStage ? "is-cleanup" : ""}`}
+        className={`director-board-screen pressure-${isDirectorStage ? Math.min(GAME_CONFIG.maximumActiveDirectors, Math.max(1, game.activeDirectorIds.length)) : 1} ${isTimelineStage ? "mode-timeline" : ""} ${isCastCallStage ? "mode-cast-call" : ""} ${isCinemaMapStage ? "mode-cinema-map" : ""} ${draggingFilmId ? "is-dragging" : ""} ${isCleanup && isDirectorStage ? "is-cleanup" : ""}`}
         ref={boardRef}
         onPointerMove={moveDragging}
         onPointerUp={stopDragging}
         onPointerCancel={cancelDragging}
         onLostPointerCapture={cancelDragging}
-        aria-label={isTimelineStage ? "Release timeline board" : isCastCallStage ? "Cast Call casting desk" : "Movie sorting board"}
+        aria-label={isTimelineStage ? "Release timeline board" : isCastCallStage ? "Cast Call casting desk" : isCinemaMapStage ? "Cinema Map travel desk" : "Movie sorting board"}
       >
         <div className="screen-grid" aria-hidden="true" />
 
@@ -1046,6 +1122,23 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
             quickPlay={quickPlayMode === "cast-call"}
             onSelectGame={openGameSelect}
           />
+        ) : null}
+
+        {isCinemaMapStage && game.status === "playing" ? (
+          <Suspense fallback={<div className="cinema-map-loading" role="status">Unfolding the world map…</div>}>
+            <CinemaMapGame
+              key={game.seed}
+              movies={CINEMA_MAP_MOVIES}
+              seed={game.seed}
+              totalScore={game.stageStartScore}
+              onProgress={setCinemaMapProgress}
+              onContinue={continueAfterCinemaMap}
+              onSound={playSound}
+              onStatus={setHudMessage}
+              quickPlay={quickPlayMode === "cinema-map"}
+              onSelectGame={openGameSelect}
+            />
+          </Suspense>
         ) : null}
 
         {isDirectorStage ? game.visibleMovieIds.map((filmId) => {
@@ -1111,7 +1204,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
 
         {stageAnnouncement ? (
           <div className="stage-start-announcement" role="status" aria-live="polite" aria-atomic="true">
-            <span>Continuing run</span><strong>STAGE {stageAnnouncement}</strong><small>{stageAnnouncement === 2 ? "New mode · Build a release timeline" : stageAnnouncement === 3 ? "New mode · Match actors to movies" : "Clear every Director · Total score carries forward"}</small>
+            <span>Continuing run</span><strong>STAGE {stageAnnouncement}</strong><small>{stageAnnouncement === 2 ? "New mode · Build a release timeline" : stageAnnouncement === 3 ? "New mode · Match actors to movies" : stageAnnouncement === 4 ? "New mode · Map world cinema" : "Clear every Director · Total score carries forward"}</small>
           </div>
         ) : null}
 

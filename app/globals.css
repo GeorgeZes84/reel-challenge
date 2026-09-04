@@ -551,9 +551,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 .timeline-film-card.is-date-hidden > b { padding: 3px 5px; background: #d7d1b9; color: #596066; font-size: 9px; letter-spacing: .02em; }
 .timeline-film-card.is-anchor { border-color: var(--pixel-amber); box-shadow: 4px 5px 0 rgba(3,13,16,.56), 0 0 0 3px rgba(255,181,47,.28); }
 .timeline-film-card.is-correct { border-color: #263b1b; box-shadow: 4px 5px 0 rgba(3,13,16,.56), 0 0 0 3px rgba(199,244,91,.2); }
-.timeline-film-card.is-corrected { opacity: .82; border-color: #6f2736; }
+.timeline-film-card.is-corrected { opacity: 1; border-color: var(--pixel-red); background: linear-gradient(90deg, transparent 0 7px, rgba(25,33,44,.15) 7px 8px, transparent 8px), #fff0d6; box-shadow: 4px 5px 0 rgba(3,13,16,.56), 0 0 0 4px rgba(255,82,103,.34); }
 .timeline-film-card.is-correct > span { color: #477125; }
-.timeline-film-card.is-corrected > span { color: #a12f43; }
+.timeline-film-card.is-corrected > span { padding: 2px 4px; justify-self: start; background: var(--pixel-red); color: #fff; font-size: 6px; }
+.timeline-film-card.is-relocating { z-index: 28; }
 .timeline-decade-guide { min-width: 0; min-height: 58px; display: grid; grid-template-columns: minmax(150px, .42fr) minmax(0, 1.58fr); border: 3px solid #10191d; background: #1c3033; box-shadow: 4px 5px 0 rgba(3,12,16,.48); }
 .timeline-decade-summary { min-width: 0; padding: 7px 10px; display: grid; align-content: center; gap: 2px; border-right: 3px solid #10191d; background: linear-gradient(135deg, rgba(97,238,224,.16), transparent 65%); }
 .timeline-decade-summary span { color: var(--pixel-cyan); font-size: 7px; font-weight: 900; letter-spacing: .13em; }
@@ -573,6 +574,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 .timeline-gap b { font-size: 17px; }
 .timeline-gap:hover, .timeline-gap:focus-visible, .timeline-gap.is-hovered { width: clamp(43px, 5vw, 64px); min-width: clamp(43px, 5vw, 64px); border-style: solid; border-color: var(--pixel-lime); background: rgba(110,145,69,.78); color: #f6ffe4; transform: translateY(-2px); }
 .timeline-gap:disabled { opacity: .18; cursor: default; }
+.timeline-gap.is-wrong, .timeline-gap.is-wrong:disabled { width: clamp(50px, 5.4vw, 70px); min-width: clamp(50px, 5.4vw, 70px); opacity: 1; border: 4px solid #fff0e2; background: var(--pixel-red); color: #fff; box-shadow: 0 0 0 4px rgba(255,82,103,.48), 0 0 24px rgba(255,82,103,.58); transform: translateY(-3px); animation: timeline-wrong-gap .56s ease both; }
+.timeline-gap.is-wrong span { font-size: 7px; letter-spacing: .04em; }
+.timeline-gap.is-wrong b { font-size: 23px; }
+.timeline-track.is-resolving .timeline-gap:not(.is-wrong) { opacity: .2; }
 .timeline-current-tray { min-height: 123px; padding: 8px 11px; display: grid; grid-template-columns: minmax(120px, .55fr) auto minmax(155px, .65fr); gap: 11px; align-items: center; border: 3px solid #11191e; background: #30484a; box-shadow: 4px 5px 0 rgba(3,12,15,.58); }
 .timeline-current-tray > div:first-child { display: grid; gap: 4px; }
 .timeline-current-tray > div:first-child span { color: var(--pixel-amber); font-size: 7px; font-weight: 900; letter-spacing: .08em; }
@@ -584,6 +589,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 .timeline-drag-ticket.is-dragging .timeline-film-card { box-shadow: 10px 13px 0 rgba(3,13,16,.42), 0 0 0 3px var(--pixel-amber); }
 .timeline-deck-complete { min-width: 170px; padding: 19px; border: 3px solid #263b1b; background: var(--pixel-lime); color: #1b2916; box-shadow: 4px 4px 0 #101719; font-size: 12px; font-weight: 900; text-align: center; }
 .timeline-status { min-height: 34px; padding: 8px 10px; border: 2px solid #10191d; background: rgba(24,36,40,.92); color: var(--pixel-cyan); font-family: Arial, Helvetica, sans-serif; font-size: 10px; font-weight: 800; line-height: 1.25; }
+.timeline-status.is-correct { border-color: #263b1b; background: #47652f; color: #f4ffdb; box-shadow: 0 0 0 3px rgba(199,244,91,.22); }
+.timeline-status.is-wrong { min-height: 43px; padding: 10px 13px; border: 4px solid #fff0e2; background: #a82d43; color: #fff; box-shadow: 0 0 0 4px rgba(255,82,103,.42), 0 0 22px rgba(255,82,103,.4); font-size: clamp(11px, 1vw, 14px); font-weight: 1000; animation: timeline-wrong-status .48s cubic-bezier(.18,.82,.22,1) both; }
 .timeline-stage.is-choosing-anchor { grid-template-rows: auto minmax(0, 1fr) auto; align-content: center; }
 .timeline-anchor-options { display: grid; grid-template-columns: repeat(3, minmax(0, 150px)); align-content: center; justify-content: center; gap: clamp(13px, 3vw, 34px); }
 .timeline-anchor-option { display: grid; gap: 8px; }
@@ -604,6 +611,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 
 @keyframes ticket-plop { 0% { opacity: 0; transform: translateY(-28px) scale(.62) rotate(calc(var(--ticket-rotation) - 8deg)); } 58% { opacity: 1; transform: translateY(5px) scale(1.08) rotate(calc(var(--ticket-rotation) + 2deg)); } 78% { transform: translateY(-2px) scale(.98) rotate(var(--ticket-rotation)); } 100% { transform: translateY(0) scale(1) rotate(var(--ticket-rotation)); } }
 @keyframes ticket-reject-return { 0%,100% { filter: none; transform: rotate(var(--ticket-rotation)) translateX(0) scale(1); } 18% { filter: sepia(.75) saturate(2.4) hue-rotate(308deg); transform: rotate(-3deg) translateX(-8px) scale(1.045); box-shadow: 7px 8px 0 rgba(53,21,32,.7), 0 0 0 4px var(--pixel-red); } 36% { transform: rotate(3deg) translateX(8px) scale(1.045); } 56% { filter: sepia(.45) saturate(1.8) hue-rotate(308deg); transform: rotate(-2deg) translateX(-5px) scale(.98); box-shadow: 5px 7px 0 rgba(53,21,32,.6), 0 0 0 3px var(--pixel-red); } }
+@keyframes timeline-wrong-gap { 0% { opacity: .45; transform: translateY(-3px) scale(.86); } 24%,58% { opacity: 1; transform: translateY(-3px) translateX(-5px) scale(1.05); } 42%,76% { transform: translateY(-3px) translateX(5px) scale(1.05); } 100% { opacity: 1; transform: translateY(-3px); } }
+@keyframes timeline-wrong-status { 0% { opacity: .4; transform: translateY(7px) scale(.98); } 55% { opacity: 1; transform: translateY(-2px) scale(1.01); } 100% { opacity: 1; transform: none; } }
 @keyframes ticket-punch-in { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.1); } 60% { opacity: 1; transform: translate(-50%, -50%) scale(.82); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes hint-sticker-plop { 0% { opacity: 0; transform: translateY(-20px) rotate(-16deg) scale(.2); } 62% { opacity: 1; transform: translateY(3px) rotate(5deg) scale(1.24); } 82% { transform: translateY(-1px) rotate(-2deg) scale(.94); } 100% { transform: none; } }
 @keyframes hint-popover-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1291,7 +1300,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(11px, 1.7vw, 22px);
   align-items: stretch;
 }
@@ -1344,6 +1353,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
 }
 .game-select-card.mode-timeline { transform: rotate(.45deg); animation-delay: 55ms; }
 .game-select-card.mode-cast-call { transform: rotate(-.35deg); animation-delay: 110ms; }
+.game-select-card.mode-cinema-map { transform: rotate(.5deg); animation-delay: 165ms; }
 .game-select-card > span {
   width: max-content;
   padding: 4px 6px;
@@ -1486,7 +1496,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
   .game-select-menu { grid-template-rows: auto auto auto auto; align-content: start; }
   .game-select-grid { grid-template-columns: minmax(0, 1fr); }
   .game-select-card { min-height: 154px; padding: 17px 15px 14px 22px; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto auto; gap: 6px 11px; transform: none; }
-  .game-select-card.mode-timeline, .game-select-card.mode-cast-call { transform: none; }
+  .game-select-card.mode-timeline, .game-select-card.mode-cast-call, .game-select-card.mode-cinema-map { transform: none; }
   .game-select-card > span, .game-select-card > strong, .game-select-card > small, .game-select-card > b { grid-column: 1; }
   .game-select-card > strong { font-size: clamp(24px, 7.2vw, 34px); }
   .game-select-card > small { min-height: 0; }
@@ -1523,4 +1533,195 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
   .game-title-lockup, .menu-action-button, .game-select-heading h2, .game-select-card, .menu-confetti i { opacity: 1; animation: none !important; }
   .menu-action-button, .game-select-card, .menu-back-button { transition: none; }
   .menu-action-button:hover, .menu-action-button:focus-visible, .game-select-card:hover, .game-select-card:focus-visible, .menu-back-button:hover, .menu-back-button:focus-visible { transform: none; }
+}
+
+/* Cinema Map · Game / Stage 04 */
+.director-board-screen.mode-cinema-map { --pressure-glow: rgba(78,199,218,.4); --pressure-start: #173f4d; --pressure-mid: #153547; --pressure-end: #132a3c; }
+.cinema-map-stage { width: 100%; height: 100%; position: relative; z-index: 2; padding: clamp(9px, 1.15vw, 16px); display: grid; grid-template-columns: minmax(0, 1fr) clamp(190px, 24%, 248px); grid-template-rows: auto minmax(0, 1fr) auto; gap: clamp(7px, .85vw, 12px); overflow: hidden; }
+.cinema-map-loading { width: 100%; height: 100%; display: grid; place-content: center; color: var(--pixel-cyan); font: 900 11px/1.4 var(--font-pixel), monospace; text-align: center; text-transform: uppercase; }
+.cinema-map-heading { grid-column: 1 / -1; position: relative; z-index: 5; }
+.cinema-map-heading > span { color: var(--pixel-amber); font-size: 8px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.cinema-map-heading h2 { margin: 3px 0 2px; font-family: Arial, Helvetica, sans-serif; font-size: clamp(22px, 2.5vw, 36px); line-height: .92; letter-spacing: -.055em; }
+.cinema-map-heading p { max-width: 780px; margin: 0; color: #cfddd9; font-family: Arial, Helvetica, sans-serif; font-size: clamp(9px, .8vw, 12px); font-weight: 700; line-height: 1.28; }
+.cinema-map-panel { min-width: 0; min-height: 0; position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 5px; border: 3px solid #0c171c; background: #112b36; box-shadow: 5px 6px 0 rgba(3,12,15,.48); }
+.cinema-region-nav { min-width: 0; padding: 5px; display: flex; gap: 4px; overflow-x: auto; border-bottom: 2px solid #0b171d; background: #243d43; scrollbar-width: thin; }
+.cinema-region-nav button { min-height: 29px; padding: 5px 7px; flex: 0 0 auto; border: 2px solid #101a1e; background: #e8dfc4; color: #172129; box-shadow: 2px 2px 0 #0d151a; font: 900 6px/1 var(--font-pixel), monospace; text-transform: uppercase; cursor: pointer; }
+.cinema-region-nav button:hover, .cinema-region-nav button:focus-visible, .cinema-region-nav button.is-active { background: var(--pixel-cyan); }
+.cinema-map-viewport { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: #0e3445; cursor: grab; touch-action: none; user-select: none; }
+.cinema-map-viewport:active { cursor: grabbing; }
+.cinema-map-viewport svg { width: 100%; height: 100%; display: block; }
+.cinema-map-ocean { fill: #103b50; }
+.cinema-map-grid-lines { opacity: .26; }
+.cinema-map-grid-lines + .cinema-map-transform, .cinema-map-transform { transform-origin: 0 0; }
+.cinema-map-transform.is-smoothing { transition: transform .38s cubic-bezier(.18,.82,.2,1); }
+.cinema-country { fill: #527268; stroke: #132b31; stroke-width: .62; fill-rule: evenodd; vector-effect: non-scaling-stroke; cursor: crosshair; transition: fill .11s ease, filter .11s ease, opacity .11s ease; }
+.cinema-country-point { stroke: #e5ead8; stroke-width: .7; }
+.cinema-country:hover, .cinema-country.is-hovered { fill: #78d9c7; filter: drop-shadow(0 0 3px rgba(97,238,224,.9)); }
+.cinema-country.is-visited { fill: #6d8953; }
+.cinema-country.is-correct { fill: var(--pixel-lime); filter: drop-shadow(0 0 8px rgba(199,244,91,.95)); animation: cinema-country-correct .58s ease-out both; }
+.cinema-country.is-wrong { fill: var(--pixel-red); filter: drop-shadow(0 0 7px rgba(255,82,103,.9)); animation: cinema-country-wrong .42s ease-in-out both; }
+.cinema-country.is-revealed { fill: var(--pixel-amber); filter: drop-shadow(0 0 8px rgba(255,203,81,.92)); animation: cinema-country-reveal .8s ease-out both; }
+.cinema-country-labels { pointer-events: none; }
+.cinema-country-labels text { paint-order: stroke; stroke: #12252c; stroke-width: 1.7px; fill: #f7f0d7; font: 900 3.2px/1 Arial, sans-serif; text-anchor: middle; text-transform: uppercase; }
+.cinema-region-hotspots g { cursor: zoom-in; }
+.cinema-region-hotspots ellipse { fill: rgba(97,238,224,.035); stroke: rgba(217,250,239,.34); stroke-width: 1.4; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; transition: fill .12s ease, stroke .12s ease; }
+.cinema-region-hotspots g:hover ellipse { fill: rgba(97,238,224,.18); stroke: var(--pixel-cyan); }
+.cinema-region-hotspots text { pointer-events: none; paint-order: stroke; stroke: #11313c; stroke-width: 3px; fill: #f4f0d7; font: 1000 11px/1 Arial, sans-serif; text-anchor: middle; text-transform: uppercase; }
+.cinema-map-markers { pointer-events: none; }
+.cinema-map-markers circle { fill: var(--pixel-amber); stroke: #1c2526; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.cinema-map-markers path { fill: #1d3034; }
+.cinema-map-markers text { paint-order: stroke; stroke: #14252b; stroke-width: 2px; fill: #fff8dc; font: 900 8px/1 Arial, sans-serif; }
+.cinema-zoom-controls { position: absolute; right: 7px; bottom: 7px; z-index: 8; display: grid; grid-template-columns: 34px 46px 34px; align-items: stretch; border: 2px solid #10191d; background: #253d42; box-shadow: 3px 4px 0 rgba(3,12,15,.55); }
+.cinema-zoom-controls button { min-width: 34px; min-height: 34px; padding: 0; border: 0; border-right: 2px solid #10191d; background: var(--cream); color: #172129; font: 1000 18px/1 Arial, sans-serif; cursor: pointer; }
+.cinema-zoom-controls button:hover, .cinema-zoom-controls button:focus-visible { background: var(--pixel-cyan); }
+.cinema-zoom-controls output { display: grid; place-content: center; color: #f2f3dc; font-size: 7px; font-weight: 900; }
+.cinema-zoom-controls .is-world { min-width: 82px; padding: 0 7px; grid-column: 1 / -1; border-top: 2px solid #10191d; border-right: 0; font: 900 6px/1 var(--font-pixel), monospace; text-transform: uppercase; }
+.cinema-map-compass { width: 40px; height: 40px; position: absolute; left: 9px; top: 9px; display: grid; place-items: center; border: 2px solid rgba(243,236,210,.75); border-radius: 50%; color: #f6eed1; opacity: .75; pointer-events: none; }
+.cinema-map-compass i { font: 900 8px/1 Arial, sans-serif; transform: translateY(-8px); }
+.cinema-map-compass span { width: 3px; height: 20px; position: absolute; background: linear-gradient(var(--pixel-red) 0 50%, #e9e2c8 50%); clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
+.cinema-country-search { position: relative; z-index: 9; border-top: 2px solid #0b171d; background: #1f383e; color: #d9e5e0; }
+.cinema-country-search summary { min-height: 29px; padding: 7px 10px; cursor: pointer; font-size: 7px; font-weight: 900; text-transform: uppercase; }
+.cinema-country-search > div { padding: 7px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
+.cinema-country-search label { grid-column: 1 / -1; color: #b6c7c2; font-size: 6px; font-weight: 900; text-transform: uppercase; }
+.cinema-country-search input { min-width: 0; min-height: 34px; padding: 7px 9px; border: 2px solid #0f181c; background: #f7efd6; color: #182229; font: 800 11px/1 Arial, sans-serif; }
+.cinema-country-search button { min-height: 34px; padding: 6px 9px; border: 2px solid #10191d; background: var(--pixel-amber); box-shadow: 2px 2px 0 #0b1418; color: #20201a; font: 900 6px/1 var(--font-pixel), monospace; text-transform: uppercase; cursor: pointer; }
+.cinema-map-ticket-dock { min-width: 0; min-height: 0; padding: 9px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; border: 3px solid #111a20; background: linear-gradient(160deg, #43575a, #283c43); box-shadow: 5px 6px 0 rgba(3,12,15,.48); }
+.cinema-map-question-count { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #d9e4df; font-size: 6px; font-weight: 900; text-transform: uppercase; }
+.cinema-map-question-count b { padding: 4px 5px; border: 2px solid #111a20; background: var(--pixel-cyan); color: #16242a; font-size: 10px; }
+.movie-geo-ticket { --geo-accent: var(--pixel-amber); --geo-snap-x: 0px; --geo-snap-y: 0px; width: 100%; min-height: 238px; padding: 0; position: relative; z-index: 20; display: grid; grid-template-columns: 31px minmax(0, 1fr); grid-template-rows: 72px minmax(0, 1fr); overflow: hidden; border: 3px solid #17202c; border-top: 8px solid var(--geo-accent); border-radius: 3px; background: var(--cream); color: var(--ink); box-shadow: 7px 9px 0 rgba(3,13,16,.56), 0 0 0 1px rgba(255,255,255,.55) inset; text-align: left; cursor: grab; touch-action: none; user-select: none; transform: rotate(-1deg); transform-origin: center; transition: filter .1s ease, box-shadow .1s ease; }
+.movie-geo-ticket::before { content: ""; position: absolute; left: 27px; top: 0; bottom: 0; border-left: 3px dashed rgba(21,33,44,.28); pointer-events: none; }
+.movie-geo-ticket.is-selected { box-shadow: 7px 9px 0 rgba(3,13,16,.56), 0 0 0 4px rgba(97,238,224,.72); }
+.movie-geo-ticket.is-presenting { animation: geo-ticket-arrive .28s cubic-bezier(.18,.88,.25,1) both; }
+.movie-geo-ticket.is-dragging { cursor: grabbing; box-shadow: 12px 16px 0 rgba(3,13,16,.4), 0 0 0 4px rgba(97,238,224,.55); }
+.movie-geo-ticket.is-correct { animation: geo-ticket-stamp .66s cubic-bezier(.16,.8,.24,1) both; }
+.movie-geo-ticket.is-wrong { animation: geo-ticket-reject .46s ease-in-out both; }
+.movie-geo-ticket.is-revealed { animation: geo-ticket-reveal .9s ease-out both; }
+.geo-ticket-spine { grid-row: 1 / 3; padding: 8px 3px; display: grid; place-content: center; color: #59636a; font-size: 6px; font-weight: 900; line-height: 1.4; text-align: center; writing-mode: vertical-rl; transform: rotate(180deg); }
+.geo-ticket-art { margin: 7px 7px 0 10px; display: grid; place-content: center; overflow: hidden; border: 2px solid #17202c; background: #27444c; }
+.geo-ticket-art img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.geo-ticket-art.is-placeholder { grid-template-columns: auto auto; grid-template-rows: auto auto; gap: 0 3px; background: repeating-linear-gradient(135deg, #28464e 0 6px, #33565a 6px 12px); color: #e4ecd8; }
+.geo-ticket-art.is-placeholder i { grid-row: 1 / 3; align-self: center; color: var(--geo-accent); font-size: 29px; font-style: normal; }
+.geo-ticket-art.is-placeholder b { align-self: end; font-size: 14px; }
+.geo-ticket-art.is-placeholder small { align-self: start; font-size: 6px; font-weight: 900; }
+.geo-ticket-copy { min-width: 0; padding: 9px 8px 12px 10px; display: grid; align-content: center; gap: 7px; }
+.geo-ticket-copy > small { color: #755d61; font-size: 5px; font-weight: 900; letter-spacing: .08em; }
+.geo-ticket-copy > strong { overflow-wrap: anywhere; font-family: Arial, Helvetica, sans-serif; font-size: clamp(24px, 2.8vw, 36px); line-height: .85; letter-spacing: -.06em; }
+.geo-ticket-copy > span { display: flex; align-items: center; gap: 5px; color: #566269; font-size: 7px; font-weight: 900; text-transform: uppercase; }
+.geo-ticket-copy > span b { padding: 3px 5px; border: 2px solid #17202c; background: var(--geo-accent); color: #172129; font-size: 12px; }
+.geo-ticket-copy > span i { width: 5px; height: 5px; border-radius: 50%; background: var(--geo-accent); }
+.geo-ticket-copy em { color: #5c6669; font-family: Arial, Helvetica, sans-serif; font-size: 8px; font-style: normal; font-weight: 800; }
+.geo-ticket-route { position: absolute; right: 8px; top: 8px; color: #2b4d52; font-size: 18px; transform: rotate(-14deg); }
+.geo-passport-stamp { position: absolute; left: 50%; top: 48%; padding: 8px 9px; border: 4px double #a2373f; border-radius: 4px; color: #a2373f; background: rgba(255,246,217,.82); font: 1000 10px/1 Arial, sans-serif; letter-spacing: .06em; transform: translate(-50%,-50%) rotate(-11deg); text-align: center; }
+.cinema-map-attempts { display: grid; gap: 5px; }
+.cinema-map-attempts > span { color: #c7d6d2; font-size: 6px; font-weight: 900; text-transform: uppercase; }
+.cinema-map-attempts > div { display: flex; gap: 6px; }
+.cinema-map-attempts i { width: 20px; height: 8px; border: 2px solid #111a20; background: var(--pixel-lime); box-shadow: 2px 2px 0 rgba(7,13,16,.6); }
+.cinema-map-attempts i.is-used { background: var(--pixel-red); }
+.cinema-map-attempts small { color: #aebfba; font-size: 7px; font-weight: 800; line-height: 1.25; }
+.cinema-map-deck-complete { min-height: 170px; display: grid; place-content: center; border: 3px solid #263b1b; background: var(--pixel-lime); color: #1b2916; box-shadow: 4px 4px 0 #101719; font-size: 12px; font-weight: 900; text-align: center; }
+.cinema-map-status { grid-column: 1 / -1; min-height: 34px; padding: 8px 11px; position: relative; z-index: 6; border: 2px solid #10191d; background: rgba(24,36,40,.96); color: var(--pixel-amber); font-family: Arial, Helvetica, sans-serif; font-size: 9px; font-weight: 850; line-height: 1.3; }
+.cinema-map-status.is-correct { border-color: #263b1b; background: #47652f; color: #f4ffdb; }
+.cinema-map-status.is-wrong { border-color: #fff0e2; background: #8e3040; color: #fff; box-shadow: 0 0 0 3px rgba(255,82,103,.3); }
+.cinema-map-screen-sticker { padding: 5px 10px 6px; display: flex; align-items: center; gap: 8px; border: 2px solid #1a1511; background: #dff8ed; color: #172b31; box-shadow: 3px 4px 0 rgba(4,10,12,.68); font-family: Arial, Helvetica, sans-serif; font-size: 6px; font-weight: 900; letter-spacing: .08em; white-space: nowrap; }
+.cinema-map-screen-sticker strong { padding-right: 8px; border-right: 2px solid rgba(23,43,49,.3); }
+.cinema-map-screen-sticker i { color: #2c8788; font-size: 6px; }
+.cinema-map-progress-panel, .cinema-map-rules-panel { padding: 10px; display: grid; gap: 7px; }
+.cinema-map-progress-panel > strong { color: var(--pixel-lime); font-family: Arial, Helvetica, sans-serif; font-size: clamp(17px, 1.6vw, 24px); line-height: 1; }
+.cinema-map-hud-meter { height: 12px; overflow: hidden; border: 2px solid #101719; background: #263638; }
+.cinema-map-hud-meter i { height: 100%; display: block; background: linear-gradient(90deg, var(--pixel-cyan), var(--pixel-lime)); transition: width .24s ease; }
+.cinema-map-progress-panel > div:last-child { display: flex; justify-content: space-between; gap: 8px; color: #bbc9c4; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.cinema-map-rules-panel ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: #e3eee9; font-family: Arial, Helvetica, sans-serif; font-size: 10px; font-weight: 800; line-height: 1.25; }
+.cinema-map-rules-panel > small { padding-top: 7px; border-top: 2px solid rgba(255,255,255,.09); color: #9fb2ac; font-size: 7px; font-weight: 800; line-height: 1.35; }
+.cinema-map-results-overlay { background: linear-gradient(145deg, rgba(27,61,70,.985), rgba(15,35,45,.995)); }
+.cinema-map-results-layout { width: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, .95fr) minmax(260px, 1.05fr); gap: 13px; }
+.cinema-map-results-layout > div:first-child { min-width: 0; display: grid; align-content: start; gap: 10px; }
+.cinema-map-results-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cinema-journey-summary { min-width: 0; padding: 9px; display: grid; align-content: start; gap: 7px; border: 3px solid #0e181c; background: #203c45; box-shadow: 4px 4px 0 #0c171b; }
+.cinema-journey-summary > span { color: var(--pixel-amber); font-size: 7px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.cinema-journey-summary > p { margin: 0; color: #e6eee9; font-family: Arial, Helvetica, sans-serif; font-size: 9px; font-weight: 800; line-height: 1.35; }
+.cinema-journey-map { min-width: 0; border: 2px solid #0c171b; background: #103b50; }
+.cinema-journey-map svg { width: 100%; display: block; }
+.cinema-journey-map .cinema-country { pointer-events: none; fill: #3e615e; stroke-width: .8; }
+.cinema-journey-map .cinema-country.is-visited { fill: var(--pixel-lime); }
+.cinema-journey-pin { pointer-events: none; }
+.cinema-journey-pin circle { fill: var(--pixel-amber); stroke: #152126; stroke-width: 2px; }
+.cinema-journey-pin text { paint-order: stroke; stroke: #152126; stroke-width: 2px; fill: #fff6d8; font: 900 10px/1 Arial, sans-serif; }
+.cinema-map-result-actions { display: flex; align-items: center; gap: 11px; }
+
+@keyframes cinema-country-correct { 0% { opacity: .5; } 45% { opacity: 1; } 70% { opacity: .72; } 100% { opacity: 1; } }
+@keyframes cinema-country-wrong { 0%,100% { translate: 0; } 25% { translate: -2px 0; } 55% { translate: 2px 0; } 75% { translate: -1px 0; } }
+@keyframes cinema-country-reveal { 0% { opacity: .3; } 35%,70% { opacity: 1; } 52% { opacity: .58; } 100% { opacity: 1; } }
+@keyframes geo-ticket-arrive { 0% { opacity: 0; transform: translateX(40px) rotate(5deg) scale(.9); } 70% { opacity: 1; transform: translateX(-3px) rotate(-2deg) scale(1.02); } 100% { opacity: 1; transform: rotate(-1deg); } }
+@keyframes geo-ticket-stamp { 0% { transform: rotate(-1deg); } 42% { transform: translate(var(--geo-snap-x), var(--geo-snap-y)) rotate(-7deg) scale(.42); opacity: 1; } 70% { transform: translate(var(--geo-snap-x), var(--geo-snap-y)) rotate(-7deg) scale(.42); opacity: .25; } 100% { transform: translate(var(--geo-snap-x), var(--geo-snap-y)) rotate(-7deg) scale(.35); opacity: 0; } }
+@keyframes geo-ticket-reject { 0%,100% { transform: rotate(-1deg) translateX(0); } 22% { transform: rotate(-3deg) translateX(-8px); box-shadow: 7px 9px 0 rgba(3,13,16,.56), 0 0 0 4px var(--pixel-red); } 48% { transform: rotate(2deg) translateX(8px); } 72% { transform: rotate(-2deg) translateX(-4px); } }
+@keyframes geo-ticket-reveal { 0%,100% { transform: rotate(-1deg); } 45% { transform: rotate(2deg) scale(1.035); box-shadow: 7px 9px 0 rgba(3,13,16,.56), 0 0 0 5px var(--pixel-amber); } }
+
+@media (min-width: 961px) and (max-height: 820px) {
+  .cinema-map-stage { padding: 8px 11px; gap: 6px; grid-template-columns: minmax(0, 1fr) 205px; }
+  .cinema-map-heading { display: flex; align-items: baseline; gap: 9px; }
+  .cinema-map-heading h2 { font-size: clamp(20px, 2.2vw, 30px); }
+  .cinema-map-heading p { display: none; }
+  .cinema-map-panel { grid-template-rows: minmax(0, 1fr); }
+  .cinema-region-nav { max-width: calc(100% - 12px); position: absolute; z-index: 9; left: 6px; right: 6px; top: 6px; border: 2px solid #0b171d; background: rgba(36,61,67,.94); box-shadow: 3px 3px 0 rgba(3,12,15,.45); }
+  .cinema-country-search { width: min(270px, calc(100% - 154px)); position: absolute; z-index: 9; left: 7px; bottom: 7px; border: 2px solid #0b171d; box-shadow: 3px 3px 0 rgba(3,12,15,.45); }
+  .cinema-map-status { min-height: 28px; padding-block: 5px; }
+  .movie-geo-ticket { min-height: 190px; grid-template-rows: 57px minmax(0, 1fr); }
+  .geo-ticket-copy { gap: 5px; }
+  .geo-ticket-copy > strong { font-size: clamp(22px, 2.4vw, 30px); }
+  .cinema-country-search summary { min-height: 24px; padding-block: 5px; }
+  .cinema-map-rules-panel ol { gap: 3px; font-size: 8px; }
+}
+
+@media (max-width: 960px) {
+  .cinema-map-stage { min-height: 690px; grid-template-columns: minmax(0, 1fr) 210px; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .cinema-map-results-layout { grid-template-columns: 1fr 1fr; }
+  .cinema-map-rules-panel { grid-column: 1 / -1; }
+}
+
+@media (max-width: 700px) {
+  .cinema-map-stage { min-height: 0; padding: 12px 9px; grid-template-columns: 1fr; grid-template-rows: auto auto minmax(360px, 1fr) auto; align-content: start; }
+  .cinema-map-heading, .cinema-map-status { grid-column: 1; }
+  .cinema-map-ticket-dock { grid-row: 2; min-height: 160px; padding: 7px; grid-template-columns: minmax(0, 1fr) 120px; grid-template-rows: auto 1fr; }
+  .cinema-map-question-count { grid-column: 1 / -1; }
+  .movie-geo-ticket { min-height: 120px; grid-template-columns: 25px 48px minmax(0, 1fr); grid-template-rows: 1fr; }
+  .movie-geo-ticket::before { left: 21px; }
+  .geo-ticket-spine { grid-row: 1; }
+  .geo-ticket-art { margin: 6px 0 6px 8px; }
+  .geo-ticket-copy { padding: 7px 6px 7px 8px; gap: 4px; }
+  .geo-ticket-copy > strong { font-size: clamp(21px, 6vw, 29px); }
+  .geo-ticket-copy em { font-size: 7px; }
+  .cinema-map-attempts { align-content: center; }
+  .cinema-map-panel { grid-row: 3; }
+  .cinema-region-nav button { min-height: 38px; }
+  .cinema-zoom-controls { grid-template-columns: 44px 50px 44px; }
+  .cinema-zoom-controls button { min-width: 44px; min-height: 44px; }
+  .cinema-map-results-layout { grid-template-columns: 1fr; overflow-y: auto; }
+  .cinema-map-result-actions { align-items: stretch; flex-direction: column; }
+  .cinema-map-result-actions button { width: 100%; }
+}
+
+@media (max-width: 560px) {
+  .cinema-map-stage { min-height: 0; grid-template-rows: auto auto minmax(380px, 1fr) auto; }
+  .cinema-map-heading h2 { font-size: 26px; }
+  .cinema-map-heading p { font-size: 9px; }
+  .cinema-map-ticket-dock { grid-template-columns: minmax(0, 1fr) 105px; }
+  .geo-ticket-art { display: none; }
+  .movie-geo-ticket { grid-template-columns: 25px minmax(0, 1fr); }
+  .cinema-region-nav { padding-bottom: 7px; }
+  .cinema-country-search > div { grid-template-columns: 1fr; }
+  .cinema-country-search label { grid-column: 1; }
+  .cinema-country-search input, .cinema-country-search button { min-height: 44px; }
+  .cinema-map-results-grid { grid-template-columns: 1fr 1fr; }
+  .cinema-map-screen-sticker { max-width: 100%; gap: 5px; font-size: 5px; }
+  .cinema-map-screen-sticker strong { padding-right: 5px; }
+}
+
+@media (prefers-contrast: more) {
+  .cinema-country { stroke: #fff; stroke-width: 1.15; }
+  .cinema-map-panel, .cinema-map-ticket-dock, .movie-geo-ticket { border-width: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinema-map-transform, .cinema-country, .movie-geo-ticket, .cinema-map-hud-meter i { transition: none !important; }
+  .cinema-country.is-correct, .cinema-country.is-wrong, .cinema-country.is-revealed, .movie-geo-ticket.is-presenting, .movie-geo-ticket.is-correct, .movie-geo-ticket.is-wrong, .movie-geo-ticket.is-revealed { animation: none !important; }
 }

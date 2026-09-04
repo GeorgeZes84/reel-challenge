@@ -6,7 +6,7 @@ export const GAME_TITLE = "CineRuckus";
 export const GAME_TAGLINE = "The movie-night game show";
 
 export type GameMenuView = "home" | "select";
-export type GameSelection = "director" | "timeline" | "cast-call";
+export type GameSelection = "director" | "timeline" | "cast-call" | "cinema-map";
 
 const GAME_OPTIONS: Array<{
   id: GameSelection;
@@ -39,6 +39,14 @@ const GAME_OPTIONS: Array<{
     description: "Match each actor to the movie where they belong.",
     skill: "Recognition · Fast flow",
     accent: "#ff6fb3",
+  },
+  {
+    id: "cinema-map",
+    number: "04",
+    title: "Cinema Map",
+    description: "Stamp landmark films onto their countries of origin.",
+    skill: "World cinema · Geography",
+    accent: "#ffcb51",
   },
 ];
 
@@ -120,10 +128,10 @@ export function GameMenu({
           <span><b>New run</b><small>Play the full lineup from the beginning</small></span><i aria-hidden="true">▶</i>
         </button>
         <button type="button" className="menu-action-button is-secondary" onClick={onOpenSelect}>
-          <span><b>Select game</b><small>Jump straight to any game for quick play</small></span><i aria-hidden="true">03</i>
+          <span><b>Select game</b><small>Jump straight to any game for quick play</small></span><i aria-hidden="true">04</i>
         </button>
       </div>
-      <footer><span>Movie night, game on.</span><b>3 games online · more in production</b></footer>
+      <footer><span>Movie night, game on.</span><b>4 games online · more in production</b></footer>
     </section>
   );
 }
@@ -132,7 +140,7 @@ export function GameMenuConsole({ view }: { view: GameMenuView }) {
   if (view === "select") {
     return (
       <>
-        <section className="hud-panel menu-console-panel is-live"><span className="hud-label">Game library</span><strong>3 games online</strong><small>Choose any title for a fresh-score quick session.</small></section>
+        <section className="hud-panel menu-console-panel is-live"><span className="hud-label">Game library</span><strong>4 games online</strong><small>Choose any title for a fresh-score quick session.</small></section>
         <section className="hud-panel menu-lineup-panel"><span className="hud-label">Tonight&apos;s lineup</span>{GAME_OPTIONS.map((option) => <div key={option.id}><b>{option.number}</b><span>{option.title}</span></div>)}</section>
         <section className="hud-panel menu-console-note"><span className="hud-label">Quick play</span><p>Use this menu to test a mode without clearing the earlier games.</p></section>
       </>
@@ -143,7 +151,7 @@ export function GameMenuConsole({ view }: { view: GameMenuView }) {
     <>
       <section className="hud-panel menu-console-panel is-live"><span className="hud-label">Now showing</span><strong>CineRuckus!</strong><small>One movie universe. A growing lineup of different games.</small></section>
       <section className="hud-panel menu-console-panel"><span className="hud-label">New run</span><strong>Full lineup</strong><small>Your score carries from one movie challenge into the next.</small></section>
-      <section className="hud-panel menu-console-panel"><span className="hud-label">Select game</span><strong>Quick play</strong><small>Jump directly to Director, Timeline, or Cast Call.</small></section>
+      <section className="hud-panel menu-console-panel"><span className="hud-label">Select game</span><strong>Quick play</strong><small>Jump directly to Director, Timeline, Cast Call, or Cinema Map.</small></section>
     </>
   );
 }

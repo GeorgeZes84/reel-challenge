@@ -1,0 +1,11 @@
+[
+  { "movieId": "parasite", "requiredAsset": "movieImage", "suggestedFilename": "parasite.jpg", "aspectRatio": "2:3" },
+  { "movieId": "dogtooth", "requiredAsset": "movieImage", "suggestedFilename": "dogtooth.jpg", "aspectRatio": "2:3" },
+  { "movieId": "the-400-blows", "requiredAsset": "movieImage", "suggestedFilename": "the-400-blows.jpg", "aspectRatio": "2:3" },
+  { "movieId": "seven-samurai", "requiredAsset": "movieImage", "suggestedFilename": "seven-samurai.jpg", "aspectRatio": "2:3" },
+  { "movieId": "roma", "requiredAsset": "movieImage", "suggestedFilename": "roma.jpg", "aspectRatio": "2:3" },
+  { "movieId": "bicycle-thieves", "requiredAsset": "movieImage", "suggestedFilename": "bicycle-thieves.jpg", "aspectRatio": "2:3" },
+  { "movieId": "a-separation", "requiredAsset": "movieImage", "suggestedFilename": "a-separation.jpg", "aspectRatio": "2:3" },
+  { "movieId": "the-godfather", "requiredAsset": "movieImage", "suggestedFilename": "the-godfather.jpg", "aspectRatio": "2:3" }
+]
+

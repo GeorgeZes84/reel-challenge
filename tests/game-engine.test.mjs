@@ -7,6 +7,7 @@ import {
   attemptAssignment,
   canUseEliminationHint,
   completeCastCallStage,
+  completeCinemaMapStage,
   completeTimelineStage,
   createInitialGame,
   hintCostForMovie,
@@ -566,6 +567,38 @@ test("Stage 3 Cast Call merges recognition results into the ongoing run", () => 
   assert.equal(state.stageNumber, 4);
   assert.equal(state.score, startingScore + 2875);
   assert.deepEqual(state.stageDirectorIds, pendingDirectorBatch, "Cast Call must hand the pending Director batch to Stage 4");
+});
+
+test("Stage 4 Cinema Map merges geography results and hands the Director batch to Stage 5", () => {
+  const pool = directorPool(40);
+  let state = createInitialGame(pool, "cinema-map-stage");
+  while (state.status === "playing") state = resolveCorrect(state).state;
+  state = startNextStage(state);
+  state = completeTimelineStage(state, { score: 1500, correct: 3, attempted: 7 });
+  state = startNextStage(state);
+  state = completeCastCallStage(state, { score: 2200, correct: 16, incorrect: 2, bestStreak: 7 });
+  state = startNextStage(state);
+  assert.equal(state.stageNumber, 4);
+  const pendingDirectorBatch = [...state.stageDirectorIds];
+  const startingScore = state.score;
+  const startingCorrect = state.correctAttempts;
+  const startingWrong = state.wrongAttempts;
+  const startingMoves = state.moveCount;
+
+  state = completeCinemaMapStage(state, { score: 6100, correct: 7, incorrect: 3, bestStreak: 4 });
+  assert.equal(state.status, "stage_complete");
+  assert.equal(state.score, startingScore + 6100);
+  assert.equal(state.correctAttempts, startingCorrect + 7);
+  assert.equal(state.wrongAttempts, startingWrong + 3);
+  assert.equal(state.moveCount, startingMoves + 10);
+  assert.equal(state.stageBestCombo, 4);
+  assert.deepEqual(state.activeDirectorIds, []);
+  assert.deepEqual(state.visibleMovieIds, []);
+
+  state = startNextStage(state);
+  assert.equal(state.status, "playing");
+  assert.equal(state.stageNumber, 5);
+  assert.deepEqual(state.stageDirectorIds, pendingDirectorBatch, "Cinema Map must not consume the pending Director batch");
 });
 
 test("cleanup waits until every remaining stage movie is physically on the board", () => {

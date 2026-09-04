@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Film } from "../data/directors";
 import { genreColor, genreFamily } from "../data/genre-colors";
 
@@ -27,6 +27,13 @@ type DragRecord = {
   startY: number;
   element: HTMLElement;
   gaps: Array<{ index: number; rect: DOMRect }>;
+};
+type TimelineFeedback = "correct" | "wrong" | null;
+type WrongPlacementMotion = {
+  filmId: string;
+  sourceCenterX: number;
+  sourceCenterY: number;
+  serial: number;
 };
 
 function seededShuffle<T>(items: readonly T[], seed: string): T[] {
@@ -55,11 +62,11 @@ function isCorrectGap(placed: readonly PlacedFilm[], film: Film, gapIndex: numbe
   return film.year >= left && film.year <= right;
 }
 
-function TimelineFilmCard({ film, result, dateHidden = false, cardRef }: { film: Film; result?: PlacedFilm["result"]; dateHidden?: boolean; cardRef?: (element: HTMLElement | null) => void }) {
+function TimelineFilmCard({ film, result, dateHidden = false, isRelocating = false, cardRef }: { film: Film; result?: PlacedFilm["result"]; dateHidden?: boolean; isRelocating?: boolean; cardRef?: (element: HTMLElement | null) => void }) {
   return (
     <article
       ref={cardRef}
-      className={`timeline-film-card${result ? ` is-${result}` : ""}${dateHidden ? " is-date-hidden" : ""}`}
+      className={`timeline-film-card${result ? ` is-${result}` : ""}${dateHidden ? " is-date-hidden" : ""}${isRelocating ? " is-relocating" : ""}`}
       style={{ "--timeline-accent": genreColor(film.genre) } as CSSProperties}
       aria-label={`${film.title}. ${dateHidden ? "Release date hidden" : `Released ${film.year}`}.`}
     >
@@ -95,6 +102,10 @@ export function ReleaseTimelineStage({
   const [correct, setCorrect] = useState(0);
   const [hoveredGap, setHoveredGap] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+  const [feedback, setFeedback] = useState<TimelineFeedback>(null);
+  const [wrongGapIndex, setWrongGapIndex] = useState<number | null>(null);
+  const [wrongMotion, setWrongMotion] = useState<WrongPlacementMotion | null>(null);
   const [message, setMessage] = useState(quickPlay
     ? "Choose one movie. Its year becomes your timeline anchor."
     : "Choose one movie from Stage 1. Its year becomes your timeline anchor.");
@@ -102,6 +113,9 @@ export function ReleaseTimelineStage({
   const filmRefs = useRef(new Map<string, HTMLElement>());
   const dragRef = useRef<DragRecord | null>(null);
   const hoveredGapRef = useRef<number | null>(null);
+  const resolvingRef = useRef(false);
+  const resolutionTimerRef = useRef<number | null>(null);
+  const wrongMotionSerialRef = useRef(0);
   const [focusedDecade, setFocusedDecade] = useState<number | null>(null);
   const currentFilm = anchor ? deck.challengeFilms[currentIndex] ?? null : null;
   const decadeMarkers = useMemo(() => {
@@ -117,13 +131,52 @@ export function ReleaseTimelineStage({
     });
   }, [placed]);
 
+  useEffect(() => () => {
+    if (resolutionTimerRef.current !== null) window.clearTimeout(resolutionTimerRef.current);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!wrongMotion) return;
+    const target = filmRefs.current.get(wrongMotion.filmId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
+    const targetRect = target.getBoundingClientRect();
+    const translateX = wrongMotion.sourceCenterX - (targetRect.left + targetRect.width / 2);
+    const translateY = wrongMotion.sourceCenterY - (targetRect.top + targetRect.height / 2);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const animation = target.animate([
+      {
+        opacity: .72,
+        transform: `translate3d(${translateX}px, ${translateY}px, 0) rotate(4deg) scale(1.08)`,
+        filter: "saturate(1.45)",
+        boxShadow: "0 0 0 5px #ff5267, 8px 10px 0 rgba(51, 14, 24, .62)",
+      },
+      {
+        offset: .24,
+        opacity: 1,
+        transform: `translate3d(${translateX * .82}px, ${translateY * .82}px, 0) rotate(-3deg) scale(1.05)`,
+        filter: "saturate(1.3)",
+        boxShadow: "0 0 0 5px #ff5267, 8px 10px 0 rgba(51, 14, 24, .62)",
+      },
+      {
+        opacity: 1,
+        transform: "translate3d(0, 0, 0) rotate(0deg) scale(1)",
+        filter: "none",
+        boxShadow: "4px 5px 0 rgba(3,13,16,.56), 0 0 0 4px rgba(255,82,103,.52)",
+      },
+    ], { duration: 560, easing: "cubic-bezier(.18,.82,.22,1)", fill: "both" });
+    return () => animation.cancel();
+  }, [wrongMotion]);
+
   const focusDecade = (decade: number, eraFilms: Film[]) => {
+    setFeedback(null);
     setFocusedDecade(decade);
     filmRefs.current.get(eraFilms[0]?.id)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     setMessage(`${decade}s: ${eraFilms.length} ${eraFilms.length === 1 ? "movie" : "movies"} currently filed in this span.`);
   };
 
   const selectAnchor = (film: Film) => {
+    setFeedback(null);
     setAnchor(film);
     setPlaced([{ film, result: "anchor" }]);
     setMessage(`${film.title} (${film.year}) is your anchor. Place the next ticket before, between or after the dated cards.`);
@@ -131,9 +184,10 @@ export function ReleaseTimelineStage({
   };
 
   const placeAt = (gapIndex: number) => {
-    if (!anchor || !currentFilm) return;
+    if (!anchor || !currentFilm || resolvingRef.current) return;
     const placementCorrect = isCorrectGap(placed, currentFilm, gapIndex);
     const insertionIndex = placementCorrect ? gapIndex : correctGapIndex(placed, currentFilm);
+    const sourceRect = gapRefs.current.get(gapIndex)?.getBoundingClientRect();
     const nextPlaced = [...placed];
     nextPlaced.splice(insertionIndex, 0, { film: currentFilm, result: placementCorrect ? "correct" : "corrected" });
     const nextAttempted = currentIndex + 1;
@@ -142,18 +196,43 @@ export function ReleaseTimelineStage({
     setPlaced(nextPlaced);
     setCorrect(nextCorrect);
     setCurrentIndex(nextAttempted);
+    setFeedback(placementCorrect ? "correct" : "wrong");
+    setWrongGapIndex(placementCorrect ? null : insertionIndex <= gapIndex ? gapIndex + 1 : gapIndex);
+    if (!placementCorrect) {
+      resolvingRef.current = true;
+      wrongMotionSerialRef.current += 1;
+      setIsResolving(true);
+      setWrongMotion({
+        filmId: currentFilm.id,
+        sourceCenterX: sourceRect ? sourceRect.left + sourceRect.width / 2 : window.innerWidth / 2,
+        sourceCenterY: sourceRect ? sourceRect.top + sourceRect.height / 2 : window.innerHeight / 2,
+        serial: wrongMotionSerialRef.current,
+      });
+    }
     setMessage(placementCorrect
       ? `Correct — ${currentFilm.title} was released in ${currentFilm.year}. +${TIMELINE_POINTS_PER_CORRECT} points.`
-      : `Not quite — ${currentFilm.title} was released in ${currentFilm.year}. It has been filed in the correct position.`);
+      : `WRONG POSITION — ${currentFilm.title} was released in ${currentFilm.year}. Watch it move to the correct place.`);
     const progress = { attempted: nextAttempted, correct: nextCorrect, score, total: deck.challengeFilms.length };
     onProgress(progress);
-    if (nextAttempted >= deck.challengeFilms.length) {
+    const completeTimeline = () => {
       onComplete({
         ...progress,
         anchorTitle: anchor.title,
         earliestYear: nextPlaced[0].film.year,
         latestYear: nextPlaced[nextPlaced.length - 1].film.year,
       });
+    };
+    if (!placementCorrect) {
+      resolutionTimerRef.current = window.setTimeout(() => {
+        resolutionTimerRef.current = null;
+        setWrongGapIndex(null);
+        setWrongMotion(null);
+        setIsResolving(false);
+        resolvingRef.current = false;
+        if (nextAttempted >= deck.challengeFilms.length) completeTimeline();
+      }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 180 : 620);
+    } else if (nextAttempted >= deck.challengeFilms.length) {
+      completeTimeline();
     }
   };
 
@@ -163,7 +242,7 @@ export function ReleaseTimelineStage({
   };
 
   const startDragging = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!currentFilm || event.button !== 0) return;
+    if (!currentFilm || resolvingRef.current || event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
@@ -174,6 +253,7 @@ export function ReleaseTimelineStage({
       gaps: Array.from(gapRefs.current, ([index, element]) => ({ index, rect: element.getBoundingClientRect() })),
     };
     hoveredGapRef.current = null;
+    setFeedback(null);
     setDragging(true);
     setMessage("Release the ticket on a glowing gap in the timeline.");
   };
@@ -259,33 +339,34 @@ export function ReleaseTimelineStage({
         </div>
       </nav>
       <div className="timeline-track-wrap" aria-label="Chronological movie timeline">
-        <div className="timeline-track">
+        <div className={`timeline-track${isResolving ? " is-resolving" : ""}`}>
           {placed.flatMap((entry, index) => [
             <button
               type="button"
-              className={`timeline-gap${hoveredGap === index ? " is-hovered" : ""}`}
+              className={`timeline-gap${hoveredGap === index ? " is-hovered" : ""}${wrongGapIndex === index ? " is-wrong" : ""}`}
               ref={(element) => { if (element) gapRefs.current.set(index, element); else gapRefs.current.delete(index); }}
               onClick={() => placeAt(index)}
               aria-label={index === 0 ? `Place ${currentFilm?.title ?? "movie"} before ${entry.film.title}` : `Place ${currentFilm?.title ?? "movie"} between dated movies`}
-              disabled={!currentFilm}
+              disabled={!currentFilm || isResolving}
               key={`gap-${index}`}
-            ><span>DROP</span><b>+</b></button>,
+            ><span>{wrongGapIndex === index ? "WRONG" : "DROP"}</span><b>{wrongGapIndex === index ? "×" : "+"}</b></button>,
             <TimelineFilmCard
               film={entry.film}
               result={entry.result}
+              isRelocating={wrongMotion?.filmId === entry.film.id}
               cardRef={(element) => { if (element) filmRefs.current.set(entry.film.id, element); else filmRefs.current.delete(entry.film.id); }}
               key={entry.film.id}
             />,
           ]).concat(
             <button
               type="button"
-              className={`timeline-gap${hoveredGap === placed.length ? " is-hovered" : ""}`}
+              className={`timeline-gap${hoveredGap === placed.length ? " is-hovered" : ""}${wrongGapIndex === placed.length ? " is-wrong" : ""}`}
               ref={(element) => { if (element) gapRefs.current.set(placed.length, element); else gapRefs.current.delete(placed.length); }}
               onClick={() => placeAt(placed.length)}
               aria-label={`Place ${currentFilm?.title ?? "movie"} after ${placed.at(-1)?.film.title ?? "the timeline"}`}
-              disabled={!currentFilm}
+              disabled={!currentFilm || isResolving}
               key={`gap-${placed.length}`}
-            ><span>DROP</span><b>+</b></button>,
+            ><span>{wrongGapIndex === placed.length ? "WRONG" : "DROP"}</span><b>{wrongGapIndex === placed.length ? "×" : "+"}</b></button>,
           )}
         </div>
       </div>
@@ -298,7 +379,7 @@ export function ReleaseTimelineStage({
         ) : <div className="timeline-deck-complete">TIMELINE COMPLETE ✓</div>}
         <small>Drag to a gap, or click the gap where this movie belongs.</small>
       </div>
-      <div className="timeline-status" role="status" aria-live="polite">{message}</div>
+      <div className={`timeline-status${feedback ? ` is-${feedback}` : ""}`} role="status" aria-live={feedback === "wrong" ? "assertive" : "polite"}>{message}</div>
     </div>
   );
 }

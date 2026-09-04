@@ -26,8 +26,8 @@ test("server-renders the CineRuckus main menu", async () => {
   assert.match(html, /The movie-night game show/i);
   assert.match(html, /New run/i);
   assert.match(html, /Select game/i);
-  assert.match(html, /Director, Timeline, or Cast Call/i);
-  assert.match(html, /3 games online/i);
+  assert.match(html, /Director, Timeline, Cast Call, or Cinema Map/i);
+  assert.match(html, /4 games online/i);
   assert.match(html, /CRT FX/i);
   assert.doesNotMatch(html, /The Director Game/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
@@ -64,6 +64,17 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
     readFile(new URL("../app/data/cast-call-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/data/cast-call-data.ts", import.meta.url), "utf8"),
   ]);
+  const [cinemaMapGame, cinemaWorldMap, movieGeoTicket, cinemaMapHud, cinemaMapEngine, cinemaMapData, cinemaMapViewport, cinemaMapAssets, worldMap] = await Promise.all([
+    readFile(new URL("../app/components/CinemaMapGame.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CinemaWorldMap.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/MovieGeoTicket.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CinemaMapHud.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cinema-map-engine.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cinema-map-data.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cinema-map-viewport.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/cinema-map-assets.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/data/world-map-countries.json", import.meta.url), "utf8"),
+  ]);
 
   assert.match(page, /<GameMenu/);
   assert.match(page, /<GameMenuConsole/);
@@ -74,6 +85,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(menu, /title: "Find the Director"/);
   assert.match(menu, /title: "Release Timeline"/);
   assert.match(menu, /title: "Cast Call"/);
+  assert.match(menu, /title: "Cinema Map"/);
   assert.match(page, /attemptAssignment/);
   assert.match(page, /directorAtPoint/);
   assert.match(page, /resolveAssignment\(drag\.filmId, targetDirectorId, drag\.startPosition\)/);
@@ -98,6 +110,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /<StageResultsOverlay\s+game=\{game\}/);
   assert.match(page, /game\.stageNumber === 2/);
   assert.match(page, /game\.stageNumber === 3/);
+  assert.match(page, /game\.stageNumber === 4/);
   assert.match(page, /<ReleaseTimelineStage/);
   assert.match(page, /<ReleaseTimelineHud/);
   assert.match(page, /completeTimelineStage/);
@@ -105,6 +118,9 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /<CastCallGame/);
   assert.match(page, /<CastCallHud/);
   assert.match(page, /completeCastCallStage/);
+  assert.match(page, /<CinemaMapGame/);
+  assert.match(page, /<CinemaMapProgressHud/);
+  assert.match(page, /completeCinemaMapStage/);
   assert.match(page, /hintContextFilmId/);
   assert.match(page, /hintContextDirectorId/);
   assert.match(page, /purchaseDirectorHint/);
@@ -234,6 +250,12 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(timeline, /decadeMarkers/);
   assert.match(timeline, /scrollIntoView/);
   assert.match(timeline, /movies.*currently filed in this span/);
+  assert.match(timeline, /WRONG POSITION/);
+  assert.match(timeline, /WrongPlacementMotion/);
+  assert.match(timeline, /target\.animate/);
+  assert.match(timeline, /isResolving/);
+  assert.match(styles, /\.timeline-gap\.is-wrong/);
+  assert.match(styles, /\.timeline-status\.is-wrong/);
   assert.match(castCallGame, /currentActorId/);
   assert.match(castCallGame, /setPointerCapture/);
   assert.match(castCallGame, /onPointerCancel=\{cancelDragging\}/);
@@ -262,6 +284,38 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(styles, /@keyframes cast-movie-enter/);
   assert.match(styles, /@media \(max-width: 560px\)[\s\S]*?\.cast-call-stage \{[^}]*grid-template-rows: auto 330px 205px auto/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.cast-camera-flash \{ display: none; \}/);
+  assert.match(cinemaMapGame, /resolveCinemaMapPlacement/);
+  assert.match(cinemaMapGame, /countryAtClientPoint/);
+  assert.match(cinemaMapGame, /onPointerCancel=\{cancelDragging\}/);
+  assert.match(cinemaMapGame, /CinemaMapResults/);
+  assert.match(cinemaWorldMap, /viewBox=\{`0 0 \$\{MAP_VIEWBOX_WIDTH\} \$\{MAP_VIEWBOX_HEIGHT\}`\}/);
+  assert.match(cinemaWorldMap, /data-country-id=\{country\.id\}/);
+  assert.match(cinemaWorldMap, /aria-label=\{country\.name\}/);
+  assert.match(cinemaWorldMap, /nearestSmallCountry/);
+  assert.match(cinemaWorldMap, /onWheel=\{handleWheel\}/);
+  assert.match(cinemaWorldMap, /Choose country by name/);
+  assert.match(cinemaWorldMap, /World view/i);
+  assert.match(movieGeoTicket, /movie-geo-ticket/);
+  assert.match(movieGeoTicket, /COUNTRY OF ORIGIN · CLASSIFIED/);
+  assert.match(cinemaMapHud, /YOUR CINEMA JOURNEY|Your cinema journey/);
+  assert.match(cinemaMapHud, /Travel again/);
+  assert.match(cinemaMapEngine, /PRIMARY_COUNTRY/);
+  assert.match(cinemaMapEngine, /ANY_VALID_COUNTRY/);
+  assert.match(cinemaMapEngine, /maximumAttempts: 3/);
+  assert.match(cinemaMapEngine, /status !== "awaitingPlacement"/);
+  assert.match(cinemaMapData, /id: "dogtooth"/);
+  assert.match(cinemaMapData, /primaryCountry: "GR"/);
+  assert.match(cinemaMapViewport, /MAP_MAX_SCALE = 7/);
+  assert.match(cinemaMapViewport, /nearestSmallCountry/);
+  assert.equal(JSON.parse(cinemaMapAssets).length, 8);
+  const parsedWorldMap = JSON.parse(worldMap);
+  assert.equal(parsedWorldMap.source.license, "Public domain");
+  assert.ok(parsedWorldMap.countries.length >= 200);
+  assert.ok(["GR", "KR", "FR", "JP", "MX", "IT", "IR", "US"].every((id) => parsedWorldMap.countries.some((country) => country.id === id)));
+  assert.match(styles, /\.director-board-screen\.mode-cinema-map/);
+  assert.match(styles, /\.cinema-map-viewport \{[^}]*touch-action: none/);
+  assert.match(styles, /@media \(max-width: 560px\)[\s\S]*?\.cinema-map-stage/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.movie-geo-ticket\.is-correct/);
   assert.match(hud, /HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR_HINT_TYPES\.map/);
   assert.match(hud, /DIRECTOR HINTS/);
@@ -352,6 +406,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(engine, /function appendDirectorSlot/);
   assert.match(engine, /initialDirectorSlots\(\[\.\.\.packedDirectors, directorId\], slots\.length\)/);
   assert.match(engine, /export function completeTimelineStage/);
+  assert.match(engine, /export function completeCinemaMapStage/);
   assert.match(engine, /stageSet\.has\(movie\.ownerDirectorId\)/);
   assert.match(engine, /eliminationHintCosts:\s*\[2, 3, 5\]/);
   assert.match(engine, /emergencyAnswerScoreMultiplier:\s*0\.5/);

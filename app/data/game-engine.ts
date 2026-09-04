@@ -579,6 +579,37 @@ export function completeCastCallStage(
   };
 }
 
+export function completeCinemaMapStage(
+  state: GameState,
+  result: { score: number; correct: number; incorrect: number; bestStreak: number },
+  config: GameConfig = GAME_CONFIG,
+): GameState {
+  if (state.status !== "playing" || state.stageNumber !== 4) {
+    throw new Error("Cinema Map can only complete while Stage 4 is active.");
+  }
+  const correct = Math.max(0, result.correct);
+  const incorrect = Math.max(0, result.incorrect);
+  const bestStreak = Math.max(0, result.bestStreak);
+  return {
+    ...state,
+    status: "stage_complete",
+    stagePhase: "cleanup",
+    activeDirectorIds: [],
+    directorSlots: Array.from({ length: config.maximumActiveDirectors }, () => null),
+    upcomingDirectorIds: [],
+    visibleMovieIds: [],
+    moveCount: state.moveCount + correct + incorrect,
+    nextDirectorIn: 0,
+    score: state.score + Math.max(0, result.score),
+    correctAttempts: state.correctAttempts + correct,
+    wrongAttempts: state.wrongAttempts + incorrect,
+    correctStreak: 0,
+    currentMultiplier: 1,
+    bestCombo: Math.max(state.bestCombo, bestStreak),
+    stageBestCombo: Math.max(state.stageBestCombo, bestStreak),
+  };
+}
+
 export type AttemptOutcome = {
   kind: "correct" | "wrong";
   filmId: string;
