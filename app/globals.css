@@ -853,6 +853,158 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
   .coin-reward-summary { position: absolute; right: 5%; top: var(--coin-target-y); padding: 6px 8px; display: block; border: 2px solid #2d1d0b; background: var(--pixel-amber); color: #34200c; box-shadow: 3px 3px 0 rgba(5,12,15,.55); font-size: 10px; font-weight: 900; transform: translateY(-50%); }
   .coin-wallet-effects { inset: -3px; border: 3px solid var(--pixel-amber); border-radius: 4px; box-shadow: 0 0 12px rgba(255,181,47,.55); }
 }
+
+/* Responsive play-first shell: the cabinet is decorative, legibility is not. */
+.crt-tv {
+  width: min(2200px, calc(100vw - 24px), calc(177.78dvh - 34px));
+}
+
+.crt-middle {
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 22vw, 500px);
+}
+
+.hud-label,
+.hint-context span,
+.selected-readout span,
+.coin-copy small,
+.hint-price small {
+  font-size: 9px;
+}
+
+.hint-panel .panel-heading .hud-label { font-size: 13px; }
+.hint-panel .panel-heading b { font-size: 10px; }
+.hint-context strong { font-size: 15px; }
+.hint-context.has-movie strong,
+.hint-context.has-director strong { font-size: 17px; }
+.selected-readout.is-empty { font-size: 11px; line-height: 1.4; }
+.hint-grid button { min-height: 66px; }
+.hint-grid strong { font-size: 12px; }
+.hint-grid small { font-size: 10px; line-height: 1.35; }
+.hint-price b { font-size: 14px; }
+.hud-message { font-size: 11px; }
+
+.genre-rule { padding: 7px 11px 8px; }
+.genre-rule > strong { font-size: 11px; }
+.genre-rule span { font-size: 11px; }
+.genre-rule i { width: 11px; height: 11px; }
+
+@media (min-width: 1500px) and (min-height: 821px) {
+  .crt-top-bezel { grid-template-columns: minmax(330px, .9fr) minmax(420px, 1.65fr) 112px; }
+  .tv-brand-block p { font-size: 10px; }
+  .tv-marquee span { font-size: 9px; }
+  .tv-marquee strong { font-size: 12px; }
+  .movie-ticket { width: clamp(150px, 15.4%, 205px); }
+  .ticket-copy strong { font-size: clamp(15px, 1.05vw, 21px); }
+  .director-slot-copy strong { font-size: clamp(13px, 1vw, 18px); }
+  .director-socket small { font-size: 7px; }
+}
+
+@media (min-width: 961px) and (max-height: 820px) {
+  .director-game {
+    height: auto;
+    min-height: 100dvh;
+    padding: 0;
+    place-items: start stretch;
+    overflow: visible;
+  }
+  .tv-aerial,
+  .crt-top-bezel,
+  .crt-bottom-bezel,
+  .tv-feet { display: none; }
+  .crt-tv {
+    width: 100%;
+    max-height: none;
+    min-height: 100dvh;
+    aspect-ratio: auto;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .crt-middle {
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr) clamp(330px, 31vw, 410px);
+    gap: 10px;
+    padding: 10px;
+  }
+  .crt-screen-frame {
+    min-height: max(700px, calc(100dvh - 20px));
+    border-radius: 18px;
+  }
+  .crt-console { gap: 9px; overflow: visible; }
+  .score-panel { padding: 9px 12px; }
+  .next-director-panel { min-height: 93px; padding: 9px 12px 10px; }
+  .next-director-label { font-size: 9px; }
+  .next-director-display strong { font-size: 54px; }
+  .hint-panel,
+  .quick-file { padding: 11px 10px 10px; }
+  .hint-grid { gap: 6px; }
+  .hint-grid button { min-height: 58px; padding: 6px 7px; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 7px; }
+  .hint-icon { width: 30px; height: 30px; font-size: 16px; }
+  .victory-list { max-height: 112px; }
+  .hud-message { padding: 9px 10px; }
+}
+
+@media (max-width: 1180px) {
+  .director-game {
+    height: auto;
+    min-height: 100dvh;
+    padding: 0;
+    display: block;
+    overflow: visible;
+  }
+  .tv-aerial,
+  .crt-top-bezel,
+  .crt-bottom-bezel,
+  .tv-feet { display: none; }
+  .crt-tv {
+    width: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .crt-middle {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 8px;
+  }
+  .crt-screen-frame { min-height: clamp(680px, 78vw, 900px); border-radius: 18px; }
+  .crt-screen { min-height: clamp(660px, 76vw, 880px); }
+  .crt-console {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    overflow: visible;
+  }
+  .hint-panel,
+  .quick-file,
+  .hud-message { grid-column: 1 / -1; }
+  .hint-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .crt-middle { padding: 0; gap: 8px; }
+  .crt-screen-frame { min-height: 820px; padding: 4px; border-width: 0; border-radius: 0; box-shadow: none; }
+  .crt-screen { min-height: 820px; border-radius: 0; }
+  .crt-console { grid-template-columns: 1fr; padding: 8px; }
+  .hint-panel,
+  .quick-file,
+  .hud-message { grid-column: 1; }
+  .hint-grid { grid-template-columns: 1fr; }
+  .movie-hint-grid button:last-child { grid-column: auto; }
+  .hint-grid button { min-height: 64px; }
+  .hint-grid strong { font-size: 12px; }
+  .hint-grid small { font-size: 10px; }
+  .genre-rule { width: min(100%, 440px); }
+  .genre-rule > div { flex-wrap: wrap; gap: 5px 9px; }
+  .genre-rule > strong,
+  .genre-rule span { font-size: 9px; }
+}
 @media (prefers-contrast: more) {
   .crt-scanlines, .crt-vignette, .crt-glass { display: none; }
   .movie-ticket, .director-slot, .hud-panel { border-width: 4px; }
