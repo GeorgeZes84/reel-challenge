@@ -132,7 +132,7 @@ export function GameHud({
             <span>{openDirectorHint.label}</span><strong>{openDirectorHint.content}</strong>
           </div>
         ) : null}
-        {hintMode === "director" ? (
+        {hintMode === "director" && hintContextDirector ? (
           <div className="hint-grid director-hint-grid">
             {DIRECTOR_HINT_TYPES.map((type) => {
               const owned = game.directorHints[hintContextDirector.id]?.[type];
