@@ -1,12 +1,12 @@
-# CineRuckus
+# Reel Challenge!
 
-**The Movie-Night Game Show**
+**The Movie Game Show**
 
-CineRuckus is a playful, browser-only collection of cinema games presented inside a responsive, vector-built 90s CRT television. A full run carries one growing movie archive and score through the lineup, while quick play makes every finished mode directly testable—no backend required.
+Reel Challenge! is a playful, browser-only collection of cinema games presented inside a responsive, vector-built 90s CRT television. A full run carries one growing movie archive and score through the lineup, while quick play makes every finished mode directly testable—no backend required.
 
 ## Main menu
 
-- **New Run** starts the full CineRuckus lineup from the beginning, preserving score and progress as each game hands off to the next.
+- **New Run** starts the full Reel Challenge! lineup from the beginning, preserving score and progress as each game hands off to the next.
 - **Select Game** opens a quick-play submenu so a mode can be launched immediately with a fresh score, without clearing the earlier games first.
 
 The current quick-play lineup has four games:
@@ -90,7 +90,7 @@ npm run lint
 ## Project shape
 
 - `app/components/DirectorGame.tsx` — interactive board, CRT HUD, dragging, hints, feedback, and progression
-- `app/components/GameMenu.tsx` — CineRuckus title screen, New Run entry point, and four-mode quick-play submenu
+- `app/components/GameMenu.tsx` — Reel Challenge! title screen, New Run entry point, and four-mode quick-play submenu
 - `app/components/GameLoopTutorial.tsx` — controlled real-object drag lesson, wrong-answer punch, completion, free hint samples, and compact reference
 - `app/components/CompletionArchiveSequence.tsx` — three-ticket snap, punch, stack compression, and Victory Area handoff
 - `app/components/StageResultsOverlay.tsx` — animated stage score transfer, performance stats, and next-stage handoff

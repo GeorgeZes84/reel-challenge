@@ -1044,7 +1044,7 @@ export function DirectorGame({ initialSeed }: { initialSeed: string }) {
         console={consoleContent}
         controls={controls}
         screenSticker={menuView ? (
-          <div className="menu-screen-sticker" aria-label="CineRuckus: four movie games are online">
+          <div className="menu-screen-sticker" aria-label="Reel Challenge: four movie games are online">
             <strong>MOVIE NIGHT</strong><span>4 GAMES ONLINE</span><i aria-hidden="true">★</i><span>MORE IN PRODUCTION</span>
           </div>
         ) : isCastCallStage ? (

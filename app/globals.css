@@ -1018,7 +1018,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--pixel-
   .actor-polaroid.is-presenting, .actor-polaroid.is-correct, .actor-polaroid.is-wrong, .movie-cast-station.is-correct, .movie-cast-station.is-wrong, .movie-cast-station.is-completing, .movie-cast-station.is-entering, .cast-member-tag, .cast-complete-stamp { opacity: 1; animation: none !important; transform: none; }
 }
 
-/* CineRuckus — main menu and quick-play library */
+/* Reel Challenge — main menu and quick-play library */
 .game-menu {
   width: 100%;
   min-height: 100%;

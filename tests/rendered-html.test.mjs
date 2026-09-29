@@ -14,16 +14,16 @@ async function render() {
   );
 }
 
-test("server-renders the CineRuckus main menu", async () => {
+test("server-renders the Reel Challenge main menu", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>CineRuckus — The Movie-Night Game Show<\/title>/i);
+  assert.match(html, /<title>Reel Challenge! — The Movie Game Show<\/title>/i);
   assert.match(html, /class="game-menu game-home-menu"/i);
-  assert.match(html, /CINE[\s\S]*?RUCKUS!/i);
-  assert.match(html, /The movie-night game show/i);
+  assert.match(html, /REEL[\s\S]*?CHALLENGE!/i);
+  assert.match(html, /The movie game show/i);
   assert.match(html, /New run/i);
   assert.match(html, /Select game/i);
   assert.match(html, /Director, Timeline, Cast Call, or Cinema Map/i);
@@ -79,7 +79,7 @@ test("keeps the CRT game local, data-driven and answer-safe", async () => {
   assert.match(page, /<GameMenu/);
   assert.match(page, /<GameMenuConsole/);
   assert.match(menu, /export function GameMenu/);
-  assert.match(menu, /GAME_TITLE = "CineRuckus"/);
+  assert.match(menu, /GAME_TITLE = "Reel Challenge!"/);
   assert.match(menu, /New run/i);
   assert.match(menu, /Select game/i);
   assert.match(menu, /title: "Find the Director"/);

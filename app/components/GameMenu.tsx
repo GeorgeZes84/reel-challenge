@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, type CSSProperties } from "react";
 
-export const GAME_TITLE = "CineRuckus";
-export const GAME_TAGLINE = "The movie-night game show";
+export const GAME_TITLE = "Reel Challenge!";
+export const GAME_TAGLINE = "The movie game show";
 
 export type GameMenuView = "home" | "select";
 export type GameSelection = "director" | "timeline" | "cast-call" | "cinema-map";
@@ -120,7 +120,7 @@ export function GameMenu({
       <div className="menu-confetti" aria-hidden="true"><i /><i /><i /><i /><i /></div>
       <div className="game-title-lockup">
         <span>Zero Guilt presents</span>
-        <h2 id="game-title"><i>CINE</i><strong>RUCKUS!</strong></h2>
+        <h2 id="game-title"><i>REEL</i><strong>CHALLENGE!</strong></h2>
         <p>{GAME_TAGLINE}</p>
       </div>
       <div className="game-menu-actions">
@@ -149,7 +149,7 @@ export function GameMenuConsole({ view }: { view: GameMenuView }) {
 
   return (
     <>
-      <section className="hud-panel menu-console-panel is-live"><span className="hud-label">Now showing</span><strong>CineRuckus!</strong><small>One movie universe. A growing lineup of different games.</small></section>
+      <section className="hud-panel menu-console-panel is-live"><span className="hud-label">Now showing</span><strong>Reel Challenge!</strong><small>One movie universe. A growing lineup of different games.</small></section>
       <section className="hud-panel menu-console-panel"><span className="hud-label">New run</span><strong>Full lineup</strong><small>Your score carries from one movie challenge into the next.</small></section>
       <section className="hud-panel menu-console-panel"><span className="hud-label">Select game</span><strong>Quick play</strong><small>Jump directly to Director, Timeline, Cast Call, or Cinema Map.</small></section>
     </>
