@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://reel-challenge.vercel.app"),
+  metadataBase: new URL("https://reel-challenge-seven.vercel.app"),
   title: "Reel Challenge! — The Movie Game Show",
   description:
     "Reel Challenge! is a browser-only movie game show with a full multi-game run and quick play for Find the Director, Release Timeline, Cast Call, and Cinema Map.",
